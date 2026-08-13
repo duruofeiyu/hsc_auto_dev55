@@ -1,0 +1,140 @@
+# 登录模块 - 数据驱动测试数据
+# 文件: data/login_data.yaml
+
+# ======================== 1. 验证码 ========================
+test_captcha:
+  - name: "正常获取验证码"
+    input:
+      save_path: "captcha_test.jpg"
+    expected:
+      success: true
+      has_image_token: true
+      file_exists: true
+
+  - name: "获取验证码响应时间"
+    input:
+      save_path: "captcha_time.jpg"
+    expected:
+      success: true
+      max_time: 3.0
+
+# ======================== 2. 登录 ========================
+# 注意：账号密码默认值从 config.py 读取，此处仅覆盖异常场景的输入
+test_login:
+  - name: "验证码错误登录失败"
+    input:
+      user_account: "chenyh"
+      password: "oUyRvWjNBC1/UB6ttKI0Wg=="
+      captcha: "xxxx"
+      image_token: "fake-uuid"
+    expected:
+      success: false
+
+  - name: "密码错误登录失败"
+    input:
+      user_account: "chenyh"
+      password: "wrong_password"
+      captcha: "valid_captcha"
+      image_token: "valid_image_token"
+    expected:
+      success: false
+
+  - name: "缺少验证码登录失败"
+    input:
+      user_account: "chenyh"
+      password: "oUyRvWjNBC1/UB6ttKI0Wg=="
+      captcha: ""
+      image_token: "fake-uuid"
+    expected:
+      success: false
+
+  - name: "缺少账号登录失败"
+    input:
+      user_account: ""
+      password: "oUyRvWjNBC1/UB6ttKI0Wg=="
+      captcha: "valid_captcha"
+      image_token: "valid_image_token"
+    expected:
+      success: false
+
+  - name: "缺少密码登录失败"
+    input:
+      user_account: "chenyh"
+      password: ""
+      captcha: "valid_captcha"
+      image_token: "valid_image_token"
+    expected:
+      success: false
+
+  - name: "账号不存在登录失败"
+    input:
+      user_account: "not_exist_user"
+      password: "oUyRvWjNBC1/UB6ttKI0Wg=="
+      captcha: "valid_captcha"
+      image_token: "valid_image_token"
+    expected:
+      success: false
+
+# ======================== 3. 用户信息 ========================
+test_user_info:
+  - name: "使用有效Token获取用户信息"
+    input:
+      use_token: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "无Token获取用户信息应失败"
+    input:
+      use_token: false
+    expected:
+      success: false
+      status_codes:
+        - 401
+        - 403
+
+# ======================== 4. 用户路由 ========================
+test_user_routes:
+  - name: "使用有效Token获取用户路由"
+    input:
+      use_token: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "无Token获取用户路由应失败"
+    input:
+      use_token: false
+    expected:
+      success: false
+      status_codes:
+        - 401
+        - 403
+
+# ======================== 5. 登出 ========================
+test_logout:
+  - name: "使用有效Token登出"
+    input:
+      use_token: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "无Token登出"
+    input:
+      use_token: false
+    expected:
+      success: true
+      code: 200
+
+# ======================== 6. 角色菜单权限端到端 ========================
+test_role_menu_permission_e2e:
+  - name: "角色菜单权限路由验证"
+    input:
+      role_name: "E2E菜单权限角色"
+      menu_ids:
+        - "228"
+      user_account: "test_user"
+    expected:
+      success: true
+      code: 200

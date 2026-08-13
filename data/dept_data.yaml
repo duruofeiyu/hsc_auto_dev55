@@ -1,0 +1,147 @@
+# 部门管理模块 - 数据驱动测试数据
+# 文件: data/dept_data.yaml
+
+# ======================== 1. 部门列表查询 ========================
+test_query_dept_list:
+  - name: "默认查询部门列表"
+    input:
+      condition: {}
+      pageNum: 1
+      pageSize: 10
+    expected:
+      success: true
+      code: 200
+      max_records: 10
+
+  - name: "分页查询部门列表"
+    input:
+      condition: {}
+      pageNum: 1
+      pageSize: 5
+    expected:
+      success: true
+      code: 200
+      max_records: 5
+
+  - name: "按部门编码搜索"
+    input:
+      condition:
+        deptCode: "001001"
+      pageNum: 1
+      pageSize: 10
+    expected:
+      success: true
+      code: 200
+      total: "1"
+
+  - name: "按部门名称搜索"
+    input:
+      condition:
+        deptName: "研发"
+      pageNum: 1
+      pageSize: 10
+    expected:
+      success: true
+      code: 200
+
+# ======================== 2. 新增部门 ========================
+test_create_dept:
+  - name: "正常新增部门"
+    input:
+      dept_name: "YAML测试部门"
+      parent_id: "1"
+      dept_code: "yaml_001"
+      dept_status: 0
+    expected:
+      success: true
+      code: 200
+
+  - name: "新增下级部门"
+    input:
+      dept_name: "YAML测试下级部门"
+      parent_id: "2082053606579658754"
+      dept_code: "yaml_002"
+      dept_status: 0
+    expected:
+      success: true
+      code: 200
+
+  - name: "新增停用状态部门"
+    input:
+      dept_name: "YAML停用部门"
+      parent_id: "1"
+      dept_code: "yaml_003"
+      dept_status: 1
+    expected:
+      success: true
+      code: 200
+
+  - name: "必填项校验-部门名称为空"
+    input:
+      dept_name: ""
+      parent_id: "1"
+      dept_code: "yaml_004"
+    expected:
+      success: false
+
+  - name: "必填项校验-部门编码为空"
+    input:
+      dept_name: "YAML测试部门"
+      parent_id: "1"
+      dept_code: ""
+    expected:
+      success: false
+
+# ======================== 3. 编辑部门 ========================
+test_update_dept:
+  - name: "编辑部门名称"
+    input:
+      dept_name: "YAML编辑后部门"
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "编辑部门状态为停用"
+    input:
+      dept_status: 1
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "编辑部门状态为启用"
+    input:
+      dept_status: 0
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+# ======================== 4. 删除部门 ========================
+test_delete_dept:
+  - name: "删除不存在的部门"
+    input:
+      dept_id: "9999999999999999999"
+    expected:
+      success: false
+
+# ======================== 5. 批量删除部门 ========================
+test_batch_delete_depts:
+  - name: "批量删除不存在的部门"
+    input:
+      dept_ids:
+        - "9999999999999999999"
+        - "9999999999999999998"
+    expected:
+      success: false
+
+# ======================== 6. 部门 IP 段 ========================
+test_query_dept_ip:
+  - name: "查询部门IP段列表"
+    input:
+      dept_id: "2082053606579658754"
+    expected:
+      success: true
+      code: 200
+      is_list: true
