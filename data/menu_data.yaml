@@ -1,0 +1,140 @@
+# 菜单管理模块 - 数据驱动测试数据
+# 文件: data/menu_data.yaml
+
+# ======================== 1. 菜单树查询 ========================
+test_query_menu_tree:
+  - name: "默认查询菜单树"
+    input:
+      _t: 0
+    expected:
+      success: true
+      code: 200
+      is_list: true
+
+  - name: "无Token查询菜单树应失败"
+    input:
+      no_token: true
+    expected:
+      success: false
+      status_codes:
+        - 401
+        - 403
+
+# ======================== 2. 新增菜单 ========================
+test_create_menu:
+  - name: "新增目录类型菜单"
+    input:
+      menu_name: "YAML测试-目录"
+      parent_id: "1"
+      menu_type: "M"
+      order_num: 1
+    expected:
+      success: true
+      code: 200
+
+  - name: "新增页面类型菜单"
+    input:
+      menu_name: "YAML测试-页面"
+      parent_id: "1"
+      menu_type: "C"
+      path: "testPage"
+      component: "testPage/index.vue"
+      order_num: 2
+    expected:
+      success: true
+      code: 200
+
+  - name: "新增按钮类型菜单"
+    input:
+      menu_name: "YAML测试-按钮"
+      parent_id: "1"
+      menu_type: "F"
+      perms: "test:add"
+      order_num: 3
+    expected:
+      success: true
+      code: 200
+
+  - name: "菜单名称为空应失败"
+    input:
+      menu_name: ""
+      parent_id: "1"
+      menu_type: "M"
+    expected:
+      success: false
+
+  - name: "父级菜单ID为空应失败"
+    input:
+      menu_name: "YAML测试菜单"
+      parent_id: ""
+      menu_type: "M"
+    expected:
+      success: false
+
+  - name: "菜单类型为空应失败"
+    input:
+      menu_name: "YAML测试菜单"
+      parent_id: "1"
+      menu_type: ""
+    expected:
+      success: false
+
+# ======================== 3. 编辑菜单 ========================
+test_update_menu:
+  - name: "编辑菜单名称"
+    input:
+      menu_name: "YAML编辑后菜单"
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "编辑菜单路径"
+    input:
+      path: "editedPath"
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "编辑菜单状态为停用"
+    input:
+      menu_status: 1
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "编辑菜单可见性"
+    input:
+      menu_visible: 1
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+# ======================== 4. 删除菜单 ========================
+test_delete_menu:
+  - name: "删除不存在的菜单"
+    input:
+      menu_id: "9999999999999999999"
+    expected:
+      success: false
+
+# ======================== 5. 响应时间 ========================
+test_create_menu_response_time:
+  - name: "新增菜单响应时间"
+    input:
+      menu_name: "YAML测试-响应时间"
+      parent_id: "1"
+      menu_type: "M"
+    expected:
+      success: true
+      max_time: 3.0
+
+  - name: "查询菜单树响应时间"
+    input:
+      _t: 0
+    expected:
+      success: true
+      max_time: 3.0

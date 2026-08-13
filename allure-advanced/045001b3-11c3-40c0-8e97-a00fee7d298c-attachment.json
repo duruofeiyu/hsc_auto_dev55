@@ -1,0 +1,5 @@
+{
+  "method": "GET",
+  "url": "https://192.168.124.55:26400/hsc-system-api/system/menu/tree",
+  "payload": null
+}

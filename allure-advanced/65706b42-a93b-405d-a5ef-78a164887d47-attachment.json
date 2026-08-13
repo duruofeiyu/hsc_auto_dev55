@@ -1,0 +1,15 @@
+{
+  "parentId": "1",
+  "orderNum": 1,
+  "menuType": "M",
+  "icon": "asset",
+  "path": "",
+  "component": "",
+  "routeParam": "",
+  "perms": "",
+  "isOutLink": 0,
+  "isCache": 1,
+  "menuVisible": 0,
+  "menuStatus": 0,
+  "remark": ""
+}

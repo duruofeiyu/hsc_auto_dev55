@@ -1,0 +1,19 @@
+{
+  "id": "1",
+  "menuName": "工作台",
+  "parentId": "0",
+  "menuCode": "M00001",
+  "path": "homePage",
+  "component": "homePage/index.vue",
+  "menuType": "C",
+  "menuVisible": 1,
+  "menuStatus": 0,
+  "isOutLink": 0,
+  "isCache": 1,
+  "icon": "homepage",
+  "orderNum": 1,
+  "createBy": "admin",
+  "createTime": "2026-07-24 03:36:42",
+  "updateBy": "system",
+  "updateTime": "2026-07-24 03:36:42"
+}

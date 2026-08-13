@@ -1,0 +1,20 @@
+{
+  "method": "POST",
+  "url": "https://192.168.124.55:26400/hsc-system-api/system/menu",
+  "payload": {
+    "menuName": "测试目录_1785402461164_b397",
+    "parentId": "1",
+    "orderNum": 1,
+    "menuType": "M",
+    "icon": "asset",
+    "path": "",
+    "component": "",
+    "routeParam": "",
+    "perms": "",
+    "isOutLink": 0,
+    "isCache": 1,
+    "menuVisible": 0,
+    "menuStatus": 0,
+    "remark": ""
+  }
+}

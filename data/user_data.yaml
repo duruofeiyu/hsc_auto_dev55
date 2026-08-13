@@ -1,0 +1,128 @@
+# 用户管理模块 - 数据驱动测试数据
+# 文件: data/user_data.yaml
+
+# ======================== 1. 用户列表查询 ========================
+test_query_user_list:
+  - name: "默认查询用户列表"
+    input:
+      pageNum: 1
+      pageSize: 10
+      condition:
+        deptCode: ""
+    expected:
+      success: true
+      code: 200
+      check_list_exists: true
+
+  - name: "分页查询用户列表"
+    input:
+      pageNum: 1
+      pageSize: 5
+      condition:
+        deptCode: ""
+    expected:
+      success: true
+      code: 200
+      max_records: 5
+
+  - name: "按部门编码查询用户列表"
+    input:
+      pageNum: 1
+      pageSize: 10
+      condition:
+        deptCode: "001"
+    expected:
+      success: true
+      code: 200
+      all_dept_id_match: "1"
+
+# ======================== 2. 新增用户 ========================
+test_create_user:
+  - name: "正常新增用户"
+    input:
+      userAccount: "test_yaml_001"
+      password: "XingDing@2024"
+      userName: "YAML测试用户"
+      phoneNumber: "13800000001"
+      deptId: "1"
+      email: "test_yaml@qq.com"
+      userStatus: 0
+      roleIds: ["4"]
+    expected:
+      success: true
+      code: 200
+
+  - name: "新增用户并关联角色"
+    input:
+      userAccount: "test_yaml_002"
+      password: "XingDing@2024"
+      userName: "YAML角色用户"
+      phoneNumber: "13800000002"
+      deptId: "1"
+      email: "test_yaml2@qq.com"
+      userStatus: 0
+      roleIds: ["2"]
+    expected:
+      success: true
+      code: 200
+
+  - name: "必填项校验-账号为空"
+    input:
+      userAccount: ""
+      password: "XingDing@2024"
+      userName: "YAML测试用户"
+      phoneNumber: "13800000003"
+      deptId: "1"
+      roleIds: ["4"]
+    expected:
+      success: false
+
+  - name: "必填项校验-密码为空"
+    input:
+      userAccount: "test_yaml_004"
+      password: ""
+      userName: "YAML测试用户"
+      phoneNumber: "13800000004"
+      deptId: "1"
+      roleIds: ["4"]
+    expected:
+      success: false
+
+# ======================== 3. 编辑用户 ========================
+test_update_user:
+  - name: "编辑用户名称"
+    input:
+      user_name: "YAML编辑后用户"
+      phone_number: "13800000005"
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+  - name: "编辑用户角色"
+    input:
+      user_name: "YAML编辑角色用户"
+      phone_number: "13800000006"
+      role_ids: ["2"]
+      is_update: true
+    expected:
+      success: true
+      code: 200
+
+# ======================== 4. 删除用户 ========================
+test_delete_user:
+  - name: "删除不存在的用户"
+    input:
+      user_id: "9999999999999999999"
+    expected:
+      success: false
+
+# ======================== 5. 重置密码 ========================
+test_reset_password:
+  - name: "正常重置密码"
+    input:
+      new_password: "NewPass@123"
+    expected:
+      success: true
+      code: 200
+    note: "该用例需要配合 temp_user fixture 使用，user_id 由 fixture 提供"

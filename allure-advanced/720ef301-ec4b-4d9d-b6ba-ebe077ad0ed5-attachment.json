@@ -1,0 +1,5 @@
+{
+  "method": "DELETE",
+  "url": "https://192.168.124.55:26400/hsc-system-api/system/menu/999999",
+  "payload": null
+}
