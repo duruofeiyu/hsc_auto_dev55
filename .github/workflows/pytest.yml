@@ -34,6 +34,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run pytest
+        env:
+          HSC_TOKEN: ${{ secrets.HSC_TOKEN }}
         run: pytest -v --tb=short --alluredir=./reports/allure-results
         continue-on-error: true
 
