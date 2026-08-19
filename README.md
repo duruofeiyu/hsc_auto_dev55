@@ -166,9 +166,46 @@ test_create_user:
       code: 200
 ```
 
+## CI/CD 持续集成
+
+本项目已配置 GitHub Actions，每次 push 到 main 分支自动触发测试。
+
+### 流水线功能
+
+- 自动安装依赖
+- 自动运行 pytest
+- 自动生成 Allure 测试报告
+- 测试日志和报告自动上传（保留 7 天）
+
+### 查看 CI 运行结果
+
+访问 GitHub 仓库 → Actions 标签页，可查看每次 push 的：
+
+- 用例执行结果（通过/失败数量）
+- 完整 pytest 输出日志
+- Allure 测试报告
+
+### 本地模拟 CI 环境
+
+由于 55 环境为内网 IP，GitHub Actions 虚拟机无法直接访问接口，CI 运行时接口请求会失败。
+
+本地验证 CI 流程：
+
+```bash
+# 安装 allure（macOS）
+brew install allure
+
+# 本地运行测试
+pytest
+
+# 生成报告
+allure serve reports/allure-results
+```
+
 ## 注意事项
 
 1. **Token 过期**：Token 有效期有限，过期后需重新从浏览器抓包更新 `token.txt`
 2. **角色签名**：角色创建/编辑/删除接口需要 x-sign 签名，当前未实现签名算法，相关用例会 skip
 3. **测试数据清理**：运行 `python system_management/cleanup_test_data.py` 可清理所有测试数据
 4. **环境隔离**：当前仅支持 55 开发环境，多环境切换待实现
+5. **CI 环境限制**：GitHub Actions 虚拟机无法访问内网 55 环境，CI 仅能验证用例收集和框架运行流程
