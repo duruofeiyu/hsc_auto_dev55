@@ -22,7 +22,18 @@ requests.packages.urllib3.disable_warnings()
 
 # 登录 Token（从浏览器 F12 抓包，粘贴到 token.txt）
 def load_token():
-    """从 token.txt 读取 Token，不存在则报错"""
+    """
+    读取 Token，按以下优先级：
+    1. 环境变量 HSC_TOKEN（CI 环境 / GitHub Secrets）
+    2. 本地 token.txt 文件（本地开发）
+    都不存在则报错
+    """
+    # 优先从环境变量读取（CI 环境）
+    env_token = os.getenv("HSC_TOKEN")
+    if env_token:
+        return env_token
+
+    # 回退到本地 token.txt（本地开发）
     token_file = os.path.join(os.path.dirname(__file__), "token.txt")
     if os.path.exists(token_file):
         with open(token_file, "r") as f:
