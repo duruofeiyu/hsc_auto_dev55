@@ -61,10 +61,10 @@ jobs:
           allure_history: allure-history
           keep_reports: 20
 
-      - name: Deploy Allure Report to GitHub Pages
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v4
         if: always()
-        uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: allure-history
+          name: allure-report
+          path: allure-history
+          retention-days: 7
