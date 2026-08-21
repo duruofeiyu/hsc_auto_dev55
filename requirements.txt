@@ -17,3 +17,15 @@ pytest-xdist>=3.0
 
 # 工具
 urllib3>=1.26
+
+# ============================================================
+# UI 自动化测试框架依赖 (Playwright)
+# 说明：UI 测试使用自定义 page fixture（见 ui_tests/conftest.py），
+# 只需安装 playwright 即可运行；pytest-playwright 为可选插件。
+# 本地安装：pip install playwright && playwright install chromium
+# ============================================================
+playwright>=1.40
+# pytest-playwright>=0.4   # 可选：若想用 pytest 内置 browser 夹具可取消注释
+
+# 验证码识别（UI 登录自动过验证码，本地离线 OCR，仅 UI 用例依赖）
+ddddocr>=1.4

@@ -28,6 +28,11 @@ logs/
 
 # Token 文件（安全）
 token.txt
+# 浏览器实时抓取的认证头（含会话 Cookie，不可入库）
+auth_headers.json
+
+# UI 登录态（storage_state，含会话 cookie，不可入库）
+ui_tests/.auth/
 
 # 临时文件
 *.tmp
