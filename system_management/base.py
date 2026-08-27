@@ -12,6 +12,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 from config import BASE_URL, load_token, get_headers
 from logger import get_logger
+from system_management.utils_sign import compute_sign
 
 logger = get_logger("base")
 
@@ -62,6 +63,17 @@ def request_wrapper(method, url, msg="", **kwargs):
     # 默认不验证 SSL
     if "verify" not in kwargs:
         kwargs["verify"] = False
+
+    # 复刻 HSC 前端 x-sign 签名：基于 url + params + data 计算
+    headers = kwargs.get("headers") or {}
+    if isinstance(headers, dict):
+        sign_params = kwargs.get("params")
+        sign_data = kwargs.get("json") or kwargs.get("data")
+        try:
+            headers["x-sign"] = compute_sign(url, sign_params, sign_data)
+        except Exception as e:
+            logger.warning(f"[{msg}] x-sign 计算失败: {e}")
+        kwargs["headers"] = headers
 
     start = time.time()
     try:

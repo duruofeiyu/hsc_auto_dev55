@@ -230,26 +230,30 @@ def temp_child_dept():
 def temp_role():
     """
     创建一个临时角色，测试结束后自动删除。
-    注意：角色创建需要 x-sign 签名，当前未实现签名算法。
-    如果创建失败，返回 None，调用方需判断并 skip。
+    x-sign 签名已于 2026-08-27 复刻实现（system_management/utils_sign.py），
+    由 base.request_wrapper 在每次发请求时统一计算，无需在此特殊处理。
+    开发环境后端偶发 500（transient 故障），创建时重试以应对。
     """
+    import time as _time
     from system_management.utils_role import build_role_payload, create_role, delete_role, update_role, get_role_detail
 
     payload = build_role_payload(
         role_name=_unique_role_name(),
         role_key=_unique_role_key()
     )
-    resp = create_role(payload)
-    data = resp.json()
+    role_id = None
+    # 开发环境后端偶发 500，重试应对 transient 故障
+    for _attempt in range(5):
+        resp = create_role(payload)
+        data = resp.json()
+        if data.get("success") and data.get("code") == 200:
+            role_id = data.get("result")
+            break
+        if "服务器开小差了" in data.get("message", "") or data.get("code") == 500:
+            _time.sleep(2)
+            continue
+        break  # 非 500 的业务失败（如重名），不再重试
 
-    # 判断是否为签名校验导致的失败
-    msg = data.get("message", "")
-    if "服务器开小差了" in msg or data.get("code") == 500:
-        logger.warning("[fixture] 创建临时角色失败：后端需要 x-sign 签名，当前未实现签名算法")
-        yield None
-        return
-
-    role_id = data.get("result") if data.get("success") else None
     logger.info(f"[fixture] 创建临时角色 role_id={role_id}")
 
     yield role_id
@@ -263,11 +267,11 @@ def temp_role():
                 user_ids=[]
             ))
             delete_role(role_id)
-            # 验证是否真的删除了（后端无 x-sign 时可能返回 success 但实际没删）
+            # 验证是否真的删除了
             verify_resp = get_role_detail(role_id)
             verify_data = verify_resp.json()
             if verify_data.get("success") and verify_data.get("result"):
-                logger.warning(f"[fixture] 角色可能未实际删除（缺少 x-sign 签名）: role_id={role_id}")
+                logger.warning(f"[fixture] 角色可能未实际删除: role_id={role_id}")
             else:
                 logger.info(f"[fixture] 删除临时角色 role_id={role_id}")
         except Exception as e:
