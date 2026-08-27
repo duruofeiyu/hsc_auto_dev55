@@ -95,7 +95,8 @@ hsc_auto_dev55/
 │   └── login_data.yaml        # 登录模块测试数据
 │
 ├── system_management/         # 系统管理模块
-│   ├── base.py                # 公共基础模块（请求封装、断言）
+│   ├── base.py                # 公共基础模块（请求封装、断言、x-sign 自动签名）
+│   ├── utils_sign.py          # x-sign 签名工具层（复刻前端算法）
 │   ├── utils_user.py          # 用户管理工具层
 │   ├── utils_dept.py          # 部门管理工具层
 │   ├── utils_role.py          # 角色管理工具层
@@ -166,6 +167,36 @@ test_create_user:
       success: true
       code: 200
 ```
+
+## x-sign 签名机制
+
+HSC 系统管理部分写接口（角色创建/编辑/删除等）需 `x-sign` 请求头做防篡改签名。本框架已在请求层自动计算并附加，用例无需关心。
+
+### 算法
+
+```
+X-Sign = MD5( JSON.stringify( 按 key 升序排序的 {query + params + data} 剔除 _t ) + SALT ).toUpperCase()
+```
+
+- 合并 URL query、axios `params`、请求体 `data`，按 key 升序排序
+- 剔除 `_t`（时间戳防重放参数，不计入签名）
+- 拼接前端写死盐值后取 MD5，结果转大写（标准 32 位大写 hex）
+
+### 盐值
+
+前端 `index-*.js` 写死常量，本框架在 `system_management/utils_sign.py::SIGN_SALT` 复刻：
+
+```
+SIGN_SALT = "dd05f1c54d63749eda95f9fa6d49v442a"
+```
+
+### 实现与集成
+
+- `system_management/utils_sign.py`：`compute_sign(url, params, data)` 完整复刻前端 `getSign`
+- `system_management/base.py`：`request_wrapper` 每次请求自动计算 `x-sign` 头（该层才有 url+params+data，全模块受益）
+- 验证样本：`MD5("{}"+SALT).upper() == E19D6243CB1945AB4F7202A1B00F77D5` ✅ 已逐字匹配
+
+> 注：55 开发环境当前不强制校验 x-sign（错误签名也能 200），但生产/其他环境可能校验，故框架仍按前端算法完整实现以保证可移植性。
 
 ## CI/CD 持续集成
 
@@ -300,8 +331,8 @@ UI 测试单独放在 `ui-e2e` job，**仅手动触发**（`Actions` 页面 → 
 
 ## 注意事项
 
-1. **Token 过期**：Token 有效期有限，过期后需重新跑 UI 登录冒烟后执行 `./venv/bin/python ui_tests/export_token.py` 自动导出（无需手工抓包）
-2. **角色签名**：角色创建/编辑/删除接口需要 x-sign 签名，当前未实现签名算法，相关用例会 skip
+1. **Token 短时轮换**：HSC token 不仅在过期后失效，且每次导航/操作后都会生成新 token（短时轮换）。`export_token` 抓到的 token 须紧邻用于接口请求（同一轮内），离开浏览器会话独立调用易 401。建议「导出 token → 紧邻跑用例」
+2. **角色签名（x-sign）**：角色创建/编辑/删除接口需要 x-sign 签名，本框架已实现（见「x-sign 签名机制」章节）。55 环境接口偶发 500/401 时相关用例仍会 skip，属环境/账号问题，非签名问题
 3. **测试数据清理**：运行 `python system_management/cleanup_test_data.py` 可清理所有测试数据
 4. **环境隔离**：当前仅支持 55 开发环境，多环境切换待实现
 5. **CI 环境限制**：GitHub Actions 虚拟机无法访问内网 55 环境，CI 仅能验证用例收集和框架运行流程
