@@ -55,9 +55,15 @@ def find_in_tree(nodes, target_id):
 # -------------------------------------------------------
 
 def is_sign_error(response_data):
-    """判断是否为签名校验导致的 500/服务器开小差了"""
-    msg = response_data.get("message", "")
-    return "服务器开小差了" in msg or response_data.get("code") == 500
+    """判断是否为签名校验导致的失败。
+
+    注：2026-08-27 已复刻并实现 HSC 前端 x-sign 算法
+    （system_management/utils_sign.compute_sign），并由 base.request_wrapper
+    在每次请求时统一计算。实测 55 开发环境后端并不强制校验 x-sign
+    （错误签名也能 200），故不再将 500「服务器开小差了」等同于签名错误
+    （那多为后端 transient 故障）。此函数保留仅为兼容历史调用，现阶段恒返回 False。
+    """
+    return False
 
 
 # -------------------------------------------------------

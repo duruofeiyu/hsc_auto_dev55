@@ -19,15 +19,15 @@ ROLE_BASE = f"{BASE_URL}/system/role"
 
 def get_headers():
     """
-    构建请求头（含 x-sign 签名占位）
-    TODO: x-sign 需要前端签名算法，临时留空；若后端强校验，需补充
+    构建请求头。
+    注意：x-sign 签名由 system_management.base.request_wrapper 在每次发请求时
+    统一计算（复刻 HSC 前端签名算法），此处不再手写占位。
     """
     headers = _get_base_headers()
     headers.update({
         "x-tenant-id": "0",
         "x-version": "v3",
         "x-timestamp": str(int(time.time() * 1000)),
-        "x-sign": ""
     })
     return headers
 
