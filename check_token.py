@@ -32,7 +32,11 @@ PROBE_PATH = f"{BASE_URL}/system/user/list?pageNo=1&pageSize=1"
 
 def probe_token(timeout=(5, 15)):
     """探测当前环境 token 是否有效。返回 (ok: bool, detail: str)"""
-    headers = get_headers()
+    try:
+        headers = get_headers()
+    except RuntimeError as e:
+        # token 文件缺失/为空 → 环境未配置 token
+        return False, f"未配置 token: {e}（先跑 export_token.py 或粘贴 token_{ENV}.txt）"
     try:
         resp = requests.get(PROBE_PATH, headers=headers, timeout=timeout, verify=False)
     except requests.exceptions.SSLError:
@@ -56,11 +60,18 @@ def probe_token(timeout=(5, 15)):
     code = data.get("code")
     msg = data.get("message", "")
 
+    # 鉴权层判定：401/403 才代表 token 无效；500/502/503 说明请求已通过鉴权层进入业务层，token 有效
+    if status in (401, 403) or code in (401, 403) or "未授权" in str(msg) or code == 0 and "token" in str(msg).lower():
+        return False, f"HTTP {status} / code={code} / {msg} → token 已过期或无效"
+    if status >= 500 or code in (500, 502, 503):
+        # 后端 5xx：鉴权已过，只是业务接口出错 → token 有效
+        return True, f"HTTP {status} / code={code} / {msg}（后端5xx，但鉴权已过 → token 有效，可重试接口）"
     if biz_success is True and code == 200:
         return True, f"HTTP {status} / 业务 code={code} → token 有效"
-    if code == 401 or "未授权" in str(msg) or "token" in str(msg).lower():
-        return False, f"HTTP {status} / code={code} / {msg} → token 已过期或无效"
-    return False, f"HTTP {status} / code={code} / {msg}（非 token 问题，疑后端不稳定）"
+    # 其它业务失败码（400/业务错误）通常也代表鉴权已过
+    if code and code != 200:
+        return True, f"HTTP {status} / 业务 code={code} / {msg}（非401，鉴权已过 → token 有效）"
+    return False, f"HTTP {status} / code={code} / {msg}（无法判定，疑后端异常）"
 
 
 def try_refresh():
