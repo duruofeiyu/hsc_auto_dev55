@@ -1,0 +1,59 @@
+# 基线核查任务模块 - 数据驱动测试数据
+# 文件: data/vuln_baseline.yaml
+
+# ======================== 1. 创建基线核查任务 ========================
+test_create_baseline:
+  - name: "正常创建在线基线核查任务"
+    input: {}
+    expected:
+      success: true
+
+  - name: "创建-任务名为空"
+    input:
+      payload:
+        task_name: ""
+    expected:
+      success: false
+
+  - name: "创建-targetsConfig 为空"
+    input:
+      payload:
+        targets_config: ""
+    expected:
+      success: false
+
+  - name: "创建-非法检查类型"
+    input:
+      payload:
+        check_type: 999
+    expected:
+      success: false
+      xfail: "已知缺陷：checkType 越界值未校验（123 已提 bug，55 回归）"
+
+  - name: "创建-非法 targetsConfig JSON"
+    input:
+      payload:
+        targets_config: "not-json"
+    expected:
+      success: false
+
+# ======================== 2. 查询基线核查任务列表 ========================
+test_query_baseline:
+  - name: "默认查询基线核查任务列表"
+    input: {}
+    expected:
+      success: true
+
+  - name: "按关键字查询"
+    input:
+      keyword: "基线"
+    expected:
+      success: true
+
+# ======================== 3. 删除基线核查任务（固定 ID 异常场景） ========================
+test_delete_baseline:
+  - name: "删除不存在的任务ID"
+    input:
+      task_id: "9999999999999999999"
+    expected:
+      success: false

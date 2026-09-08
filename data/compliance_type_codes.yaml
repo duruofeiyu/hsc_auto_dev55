@@ -1,0 +1,87 @@
+# 合规运营 - 11 个 typeCode 参数化数据
+# 文件: data/compliance_type_codes.yaml
+
+# ======================== 11 个 typeCode 正常创建 ========================
+type_codes:
+  - type_code: COMPLIANCE_NS
+    type_name: 网络安全任务书
+  - type_code: COMPLIANCE_PI
+    type_name: 个人信息保护
+  - type_code: COMPLIANCE_DJPC
+    type_name: 等保测评
+  - type_code: COMPLIANCE_SM
+    type_name: 国密合规
+  - type_code: COMPLIANCE_HR
+    type_name: 三甲评审
+  - type_code: COMPLIANCE_DS
+    type_name: 数据安全
+  - type_code: COMPLIANCE_EMR
+    type_name: 电子病历评级
+  - type_code: COMPLIANCE_MATURITY
+    type_name: 网络安全成熟度
+  - type_code: COMPLIANCE_SH
+    type_name: 智慧医院评级
+  - type_code: COMPLIANCE_CONN
+    type_name: 互联互通
+  - type_code: COMPLIANCE_IM
+    type_name: 互联网诊疗
+
+# ======================== 各 typeCode 特有字段校验（targetLevel 越界） ========================
+# 55 实测：targetLevel 越界值被后端静默放行（参数校验缺陷），用 xfail 标注
+# xfail 机制：若后端实际正确拒绝（success=False），用例走 assert_business_fail 通过（自动揭示无缺陷）
+test_target_level_validation:
+  - name: "等保测评-targetLevel 越界"
+    type_code: COMPLIANCE_DJPC
+    override:
+      targetLevel: "999"
+    expected:
+      success: false
+      xfail: "已知缺陷：targetLevel 越界值未校验，静默放行"
+
+  - name: "国密合规-targetLevel 越界"
+    type_code: COMPLIANCE_SM
+    override:
+      targetLevel: "999"
+    expected:
+      success: false
+      xfail: "已知缺陷：targetLevel 越界值未校验，静默放行"
+
+  - name: "三甲评审-targetLevel 非法值"
+    type_code: COMPLIANCE_HR
+    override:
+      targetLevel: "甲甲"
+    expected:
+      success: false
+      xfail: "已知缺陷：targetLevel 非法值未校验，静默放行"
+
+  - name: "电子病历评级-targetLevel 越界"
+    type_code: COMPLIANCE_EMR
+    override:
+      targetLevel: "99"
+    expected:
+      success: false
+      xfail: "已知缺陷：targetLevel 越界值未校验，静默放行"
+
+  - name: "网络安全成熟度-targetLevel 越界"
+    type_code: COMPLIANCE_MATURITY
+    override:
+      targetLevel: "99"
+    expected:
+      success: false
+      xfail: "已知缺陷：targetLevel 越界值未校验，静默放行"
+
+  - name: "智慧医院评级-targetLevel 越界"
+    type_code: COMPLIANCE_SH
+    override:
+      targetLevel: "99"
+    expected:
+      success: false
+      xfail: "已知缺陷：targetLevel 越界值未校验，静默放行"
+
+  - name: "互联互通-targetLevel 非法值"
+    type_code: COMPLIANCE_CONN
+    override:
+      targetLevel: "99"
+    expected:
+      success: false
+      xfail: "已知缺陷：targetLevel 非法值未校验，静默放行"

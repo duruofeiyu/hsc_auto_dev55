@@ -1,0 +1,36 @@
+# 资产概览模块 - 数据驱动测试数据
+# 文件: data/asset_overview.yaml
+
+# ======================== 1. 资产趋势图 ========================
+test_trend:
+  - name: "趋势-近7天"
+    input:
+      period: "7d"
+    expected:
+      success: true
+
+  - name: "趋势-近30天"
+    input:
+      period: "30d"
+    expected:
+      success: true
+
+  - name: "趋势-近90天"
+    input:
+      period: "90d"
+    expected:
+      success: true
+
+# ======================== 2. 未纳管资产列表 ========================
+test_unregistered:
+  - name: "未纳管资产列表-默认"
+    input: {}
+    expected:
+      success: true
+
+  - name: "未纳管资产列表-分页每页5条"
+    input:
+      page_size: 5
+    expected:
+      success: true
+      max_records: 5

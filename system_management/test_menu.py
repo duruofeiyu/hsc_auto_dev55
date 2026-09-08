@@ -8,8 +8,8 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 
-from system_management.base import get_headers, assert_success, assert_business_fail, request_no_auth
-from system_management.utils_common import find_in_tree, unique_name
+from core.base import get_headers, assert_success, assert_business_fail, request_no_auth
+from core.utils_common import find_in_tree, unique_name
 
 from system_management.utils_menu import (
     query_menu_tree,

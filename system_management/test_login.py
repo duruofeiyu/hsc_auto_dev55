@@ -12,7 +12,7 @@ import uuid
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 
 from config import BASE_URL, load_token, TEST_USER_ACCOUNT, TEST_ENCRYPTED_PASSWORD
-from system_management.base import assert_success, assert_business_fail, request_no_auth
+from core.base import assert_success, assert_business_fail, request_no_auth
 
 from system_management.utils_login import (
     get_captcha_image,

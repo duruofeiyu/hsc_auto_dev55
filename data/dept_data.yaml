@@ -59,7 +59,7 @@ test_create_dept:
   - name: "新增下级部门"
     input:
       dept_name: "YAML测试下级部门"
-      parent_id: "2082053606579658754"
+      parent_id: "__PARENT_DEPT_ID__"
       dept_code: "yaml_002"
       dept_status: 0
     expected:
@@ -140,7 +140,7 @@ test_batch_delete_depts:
 test_query_dept_ip:
   - name: "查询部门IP段列表"
     input:
-      dept_id: "2082053606579658754"
+      dept_id: "__PARENT_DEPT_ID__"
     expected:
       success: true
       code: 200

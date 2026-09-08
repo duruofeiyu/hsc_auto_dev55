@@ -1,5 +1,5 @@
 """
-55 开发环境 - 系统管理 - 公共基础模块
+HSC 自动化测试框架 - 核心公共基础模块
 抽取各 utils_*.py 中重复的 assert_success / assert_business_fail / request_wrapper
 注意：get_headers() 统一在 config.py 中定义，此处不再重复
 """
@@ -9,10 +9,10 @@ import requests
 from functools import wraps
 
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
-from config import BASE_URL, load_token, get_headers
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from config import BASE_URL, load_token, get_headers, resolve_env_placeholders
 from logger import get_logger
-from system_management.utils_sign import compute_sign
+from core.utils_sign import compute_sign
 
 logger = get_logger("base")
 
@@ -122,11 +122,13 @@ def load_yaml_data(yaml_file):
     """
     加载 YAML 测试数据
     用法: data = load_yaml_data("user_data.yaml")
+    加载后自动解析 `__KEY__` 环境占位符（跨环境 ID 环境化，见 config.ENV_IDS）
     """
     import yaml
     data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', yaml_file)
     with open(data_path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
+        data = yaml.safe_load(f)
+    return resolve_env_placeholders(data)
 
 
 def request_no_auth(method, url, msg="", **kwargs):

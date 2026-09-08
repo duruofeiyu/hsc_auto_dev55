@@ -1,0 +1,109 @@
+# 主机资产模块 - 数据驱动测试数据
+# 文件: data/asset_host.yaml
+
+# ======================== 1. 查询主机列表 ========================
+test_query_host:
+  - name: "默认查询主机列表"
+    input: {}
+    expected:
+      success: true
+
+  - name: "按资产名称精准查询"
+    input:
+      condition:
+        assetName: "自动化测试主机"
+    expected:
+      success: true
+
+  - name: "按IP精准查询"
+    input:
+      condition:
+        ip: "10.200.0.1"
+    expected:
+      success: true
+
+  - name: "分页查询-每页5条"
+    input:
+      pageSize: 5
+    expected:
+      success: true
+      max_records: 5
+
+  - name: "无结果关键字查询"
+    input:
+      keyword: "不存在的关键字xyz"
+    expected:
+      success: true
+      max_records: 0
+
+# ======================== 2. 新增主机 ========================
+test_create_host:
+  - name: "正常新增主机"
+    input: {}
+    expected:
+      success: true
+
+  - name: "新增-资产名称为空"
+    input:
+      payload:
+        asset_name: ""
+    expected:
+      success: false
+
+  - name: "新增-IP为空"
+    input:
+      payload:
+        ip: ""
+    expected:
+      success: false
+
+  - name: "新增-非法IP格式"
+    input:
+      payload:
+        ip: "999.999.1.1"
+    expected:
+      success: false
+
+# ======================== 3. 编辑主机 ========================
+test_update_host:
+  - name: "编辑-修改负责人"
+    input:
+      payload:
+        owner: "YAML新负责人"
+    expected:
+      success: true
+
+  - name: "编辑-修改操作系统"
+    input:
+      payload:
+        os_name: "Linux"
+    expected:
+      success: true
+
+  - name: "编辑-修改备注"
+    input:
+      payload:
+        remark: "YAML修改备注"
+    expected:
+      success: true
+
+  - name: "编辑-名称为空"
+    input:
+      payload:
+        asset_name: ""
+    expected:
+      success: false
+
+# ======================== 4. 删除主机（固定 ID 异常场景） ========================
+test_delete_host:
+  - name: "删除不存在的ID"
+    input:
+      host_id: "9999999999999999999"
+    expected:
+      success: false
+
+  - name: "删除-非法ID格式"
+    input:
+      host_id: "not-a-valid-id"
+    expected:
+      success: false

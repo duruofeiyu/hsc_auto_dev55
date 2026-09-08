@@ -10,7 +10,7 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 
-from system_management.base import (
+from core.base import (
     get_headers,
     assert_success,
     assert_business_fail,
@@ -111,7 +111,7 @@ class TestQueryMenuDataDriven:
 
         with allure.step(f"Step 1: 调用查询接口 - {test_case['name']}"):
             if test_input.get("no_token"):
-                from system_management.base import request_no_auth
+                from core.base import request_no_auth
                 resp = request_no_auth(
                     "get",
                     f"{MENU_BASE}/tree",

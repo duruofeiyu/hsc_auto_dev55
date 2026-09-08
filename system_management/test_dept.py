@@ -9,8 +9,8 @@ import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 
-from system_management.base import get_headers, assert_success, assert_business_fail, request_wrapper, request_no_auth
-from system_management.utils_common import unique_name, unique_code
+from core.base import get_headers, assert_success, assert_business_fail, request_wrapper, request_no_auth
+from core.utils_common import unique_name, unique_code
 
 from system_management.utils_dept import (
     query_depts,
@@ -329,13 +329,13 @@ class TestDeptIp:
     @allure.severity(allure.severity_level.NORMAL)
     def test_query_dept_ip_list(self):
         """查询部门 IP 段列表"""
-        from config import BASE_URL
+        from config import BASE_URL, get_env_id
         # 该接口需要认证，使用带 token 的请求
         resp = request_wrapper(
             "get",
             f"{BASE_URL}/system/dept-ip/list",
             msg="查询部门IP段",
-            params={"deptId": "2082053606579658754", "_t": int(time.time() * 1000)},
+            params={"deptId": get_env_id("PARENT_DEPT_ID", "2082053606579658754"), "_t": int(time.time() * 1000)},
             headers=get_headers()
         )
         data = assert_success(resp, "查询部门IP段")

@@ -10,7 +10,7 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 
-from system_management.base import (
+from core.base import (
     get_headers,
     assert_success,
     assert_business_fail,
@@ -20,7 +20,7 @@ from system_management.base import (
 from config import BASE_URL
 import requests
 
-from system_management.utils_common import unique_name, unique_code
+from core.utils_common import unique_name, unique_code
 from system_management.utils_dept import (
     query_depts,
     create_dept,

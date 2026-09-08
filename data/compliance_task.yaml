@@ -1,0 +1,73 @@
+# 合规运营 - 通用任务 CRUD 数据驱动测试数据
+# 文件: data/compliance_task.yaml
+# 以 COMPLIANCE_NS（网络安全任务书）为代表 typeCode，覆盖 /compliance/task 通用 CRUD 的字段校验
+# 说明：空/缺 taskName 后端返回 500（未做参数校验的缺陷），assert_business_fail 按 success=False 或 code!=200 通过
+
+# ======================== 1. 创建任务 ========================
+test_create_task:
+  - name: "正常创建任务"
+    input:
+      type_code: COMPLIANCE_NS
+    expected:
+      success: true
+
+  - name: "创建-任务名为空"
+    input:
+      type_code: COMPLIANCE_NS
+      task_name: ""
+    expected:
+      success: false
+
+  - name: "创建-缺少 taskName 字段"
+    input:
+      type_code: COMPLIANCE_NS
+      missing_task_name: true
+    expected:
+      success: false
+
+  - name: "创建-缺少 typeCode 字段"
+    input:
+      type_code: null
+      missing_type_code: true
+    expected:
+      success: false
+
+  - name: "创建-非法 typeCode"
+    input:
+      type_code: COMPLIANCE_XXX
+    expected:
+      success: false
+
+# ======================== 2. 查询任务列表 ========================
+test_query_task:
+  - name: "默认查询任务列表"
+    input: {}
+    expected:
+      success: true
+
+  - name: "按关键字查询任务列表"
+    input:
+      keyword: "测试"
+      keyword_fields: ["taskName"]
+    expected:
+      success: true
+
+  - name: "按状态筛选任务列表"
+    input:
+      latest_status: PENDING
+    expected:
+      success: true
+
+# ======================== 3. 删除任务（固定 ID 异常场景） ========================
+test_delete_task:
+  - name: "删除不存在的任务ID"
+    input:
+      task_id: "9999999999999999999"
+    expected:
+      success: false
+
+  - name: "删除非法ID"
+    input:
+      task_id: "abc"
+    expected:
+      success: false

@@ -37,7 +37,8 @@ jobs:
       - name: Run pytest
         env:
           HSC_TOKEN: ${{ secrets.HSC_TOKEN }}
-        run: pytest system_management -v --tb=short --alluredir=./reports/allure-results
+        # testpaths 已在 pytest.ini 配置为 4 个接口模块（system_management/asset_management/vuln_management/compliance_operations）
+        run: pytest -v --tb=short --alluredir=./reports/allure-results
         continue-on-error: true
 
       - name: Upload Allure results

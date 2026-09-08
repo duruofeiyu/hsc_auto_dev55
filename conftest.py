@@ -19,7 +19,7 @@ if project_root not in sys.path:
 import requests
 requests.packages.urllib3.disable_warnings()
 
-from config import BASE_URL, load_token, get_headers
+from config import BASE_URL, load_token, get_headers, ENV_NAME, get_env_id
 from logger import get_logger
 
 logger = get_logger("conftest")
@@ -33,7 +33,7 @@ def pytest_sessionfinish(session, exitstatus):
         env_file = os.path.join(project_root, "reports", "allure-results", "environment.properties")
         os.makedirs(os.path.dirname(env_file), exist_ok=True)
         with open(env_file, "w", encoding="utf-8") as f:
-            f.write(f"Environment=55开发环境\n")
+            f.write(f"Environment={ENV_NAME}\n")
             f.write(f"BaseURL={BASE_URL}\n")
             f.write(f"Python={sys.version.split()[0]}\n")
             f.write(f"Platform={sys.platform}\n")
@@ -206,7 +206,7 @@ def temp_child_dept():
 
     payload = build_dept_payload(
         dept_name=_unique_dept_name("下级"),
-        parent_id="2082053606579658754",
+        parent_id=get_env_id("PARENT_DEPT_ID", "2082053606579658754"),
         dept_code=f"fixture_child_{uuid.uuid4().hex[:6]}"
     )
     resp = create_dept(payload)

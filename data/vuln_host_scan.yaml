@@ -1,0 +1,83 @@
+# 主机漏洞扫描任务模块 - 数据驱动测试数据
+# 文件: data/vuln_host_scan.yaml
+
+# ======================== 1. 创建主机漏洞扫描任务 ========================
+test_create_host_scan:
+  - name: "正常创建主机漏洞扫描任务"
+    input: {}
+    expected:
+      success: true
+
+  - name: "创建-任务名为空"
+    input:
+      payload:
+        task_name: ""
+    expected:
+      success: false
+
+  - name: "创建-扫描目标为空"
+    input:
+      payload:
+        scan_target: ""
+    expected:
+      success: false
+
+  - name: "创建-非法扫描目标格式"
+    input:
+      payload:
+        scan_target: "999.999.1.1"
+    expected:
+      success: false
+
+  - name: "创建-非法 speed 越界"
+    input:
+      payload:
+        speed: 999
+    expected:
+      success: false
+      xfail: "已知缺陷：speed=999 未校验静默创建（apis.md §11.1.9，123 已提 bug）"
+
+  - name: "创建-非法 versionIntensity 越界"
+    input:
+      payload:
+        version_intensity: 10
+    expected:
+      success: false
+      xfail: "已知缺陷：versionIntensity=10 未校验静默创建（apis.md §11.1.9）"
+
+  - name: "创建-hostTimeout 为 0"
+    input:
+      payload:
+        host_timeout: 0
+    expected:
+      success: false
+      xfail: "已知缺陷：hostTimeout=0 未校验静默创建（apis.md §11.1.9）"
+
+  - name: "创建-负数 maxRetries"
+    input:
+      payload:
+        max_retries: -1
+    expected:
+      success: false
+      xfail: "已知缺陷：maxRetries=-1 未校验静默创建（apis.md §11.1.9）"
+
+# ======================== 2. 查询主机漏洞扫描任务列表 ========================
+test_query_host_scan:
+  - name: "默认查询主机漏洞扫描任务列表"
+    input: {}
+    expected:
+      success: true
+
+  - name: "按关键字查询"
+    input:
+      keyword: "主机"
+    expected:
+      success: true
+
+# ======================== 3. 删除主机漏洞扫描任务（固定 ID 异常场景） ========================
+test_delete_host_scan:
+  - name: "删除不存在的任务ID"
+    input:
+      task_id: "9999999999999999999"
+    expected:
+      success: false

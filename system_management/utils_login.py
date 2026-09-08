@@ -10,7 +10,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 from config import BASE_URL
-from system_management.base import assert_success, assert_business_fail, request_wrapper
+from core.base import assert_success, assert_business_fail, request_wrapper
 
 LOGIN_BASE = f"{BASE_URL}/system/auth"
 

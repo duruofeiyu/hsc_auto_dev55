@@ -7,7 +7,7 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 from config import BASE_URL
-from system_management.base import get_headers, assert_success, assert_business_fail, request_wrapper
+from core.base import get_headers, assert_success, assert_business_fail, request_wrapper
 
 MENU_BASE = f"{BASE_URL}/system/menu"
 
