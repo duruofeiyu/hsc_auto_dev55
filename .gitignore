@@ -39,3 +39,7 @@ ui_tests/.auth/
 # 临时文件
 *.tmp
 *.bak
+*.bak*
+
+# 临时验证码截图证据（一次性调试用，不入库）
+captcha_*.jpg
