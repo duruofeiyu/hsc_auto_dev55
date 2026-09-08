@@ -30,13 +30,14 @@ except ImportError:
 HERE = os.path.dirname(os.path.abspath(__file__))
 UI_DIR = HERE                                  # ui_tests/
 PROJECT_ROOT = os.path.dirname(HERE)           # hsc_auto_dev55/
-STATE_FILE = os.path.join(UI_DIR, ".auth", "state.json")
-TOKEN_FILE = os.path.join(PROJECT_ROOT, "token.txt")
-AUTH_HEADERS_FILE = os.path.join(PROJECT_ROOT, "auth_headers.json")
 
-# 复用 config 里的 UI 前端地址，避免写死
+# 复用 config 里的 UI 前端地址 + 环境标识，避免写死（必须先于下方文件名引用）
 sys.path.insert(0, PROJECT_ROOT)
-from config import UI_WEB_BASE_URL  # noqa: E402
+from config import UI_WEB_BASE_URL, ENV  # noqa: E402
+
+STATE_FILE = os.path.join(UI_DIR, ".auth", "state.json")
+TOKEN_FILE = os.path.join(PROJECT_ROOT, f"token_{ENV}.txt")
+AUTH_HEADERS_FILE = os.path.join(PROJECT_ROOT, f"auth_headers_{ENV}.json")
 
 
 def main():
