@@ -26,6 +26,11 @@ logs/
 *.swo
 .DS_Store
 
+# 本机敏感配置（账号明文密码等，不入库）
+.env
+.env.*
+!.env.example
+
 # Token 文件（安全）
 token.txt
 token_*.txt
