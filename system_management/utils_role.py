@@ -11,7 +11,7 @@ import sys, os
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
-from config import BASE_URL, get_headers as _get_base_headers
+from config import BASE_URL, SYSTEM_SECURITY_ROLE, get_headers as _get_base_headers
 from core.base import assert_success, assert_business_fail, request_wrapper
 
 ROLE_BASE = f"{BASE_URL}/system/role"
@@ -23,7 +23,7 @@ def get_headers():
     注意：x-sign 签名由 core.base.request_wrapper 在每次发请求时
     统一计算（复刻 HSC 前端签名算法），此处不再手写占位。
     """
-    headers = _get_base_headers()
+    headers = _get_base_headers(role=SYSTEM_SECURITY_ROLE)
     headers.update({
         "x-tenant-id": "0",
         "x-version": "v3",

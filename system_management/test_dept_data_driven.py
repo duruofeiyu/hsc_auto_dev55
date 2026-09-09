@@ -17,7 +17,7 @@ from core.base import (
     request_wrapper,
     load_yaml_data,
 )
-from config import BASE_URL
+from config import BASE_URL, SYSTEM_ADMIN_ROLE
 import requests
 
 from core.utils_common import unique_name, unique_code
@@ -260,7 +260,7 @@ class TestQueryDeptIpDataDriven:
             resp = requests.get(
                 f"{BASE_URL}/system/dept-ip/list",
                 params={"deptId": test_input["dept_id"], "_t": int(time.time() * 1000)},
-                headers=get_headers(),
+                headers=get_headers(SYSTEM_ADMIN_ROLE),
                 verify=False
             )
             allure.attach(

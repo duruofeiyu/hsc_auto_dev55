@@ -9,6 +9,7 @@ import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 
+from config import SYSTEM_ADMIN_ROLE
 from core.base import get_headers, assert_success, assert_business_fail, request_wrapper, request_no_auth
 from core.utils_common import unique_name, unique_code
 
@@ -336,7 +337,7 @@ class TestDeptIp:
             f"{BASE_URL}/system/dept-ip/list",
             msg="查询部门IP段",
             params={"deptId": get_env_id("PARENT_DEPT_ID", "2082053606579658754"), "_t": int(time.time() * 1000)},
-            headers=get_headers()
+            headers=get_headers(SYSTEM_ADMIN_ROLE)
         )
         data = assert_success(resp, "查询部门IP段")
         result = data.get("result", [])

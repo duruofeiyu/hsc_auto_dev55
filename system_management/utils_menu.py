@@ -7,6 +7,7 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 from config import BASE_URL
+from config import SYSTEM_SECURITY_ROLE
 from core.base import get_headers, assert_success, assert_business_fail, request_wrapper
 
 MENU_BASE = f"{BASE_URL}/system/menu"
@@ -59,7 +60,7 @@ def query_menu_tree(timestamp=None):
     if timestamp is None:
         timestamp = int(time.time() * 1000)
     return request_wrapper("get", f"{MENU_BASE}/tree", msg="查询菜单树",
-                           params={"_t": timestamp}, headers=get_headers())
+                           params={"_t": timestamp}, headers=get_headers(SYSTEM_SECURITY_ROLE))
 
 
 def create_menu(payload):
@@ -68,7 +69,7 @@ def create_menu(payload):
     POST /system/menu
     """
     return request_wrapper("post", MENU_BASE, msg="新增菜单",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_SECURITY_ROLE))
 
 
 def update_menu(menu_id, payload):
@@ -77,7 +78,7 @@ def update_menu(menu_id, payload):
     PUT /system/menu/{menu_id}
     """
     return request_wrapper("put", f"{MENU_BASE}/{menu_id}", msg="编辑菜单",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_SECURITY_ROLE))
 
 
 def delete_menu(menu_id):
@@ -86,4 +87,4 @@ def delete_menu(menu_id):
     DELETE /system/menu/{menu_id}
     """
     return request_wrapper("delete", f"{MENU_BASE}/{menu_id}", msg="删除菜单",
-                           headers=get_headers())
+                           headers=get_headers(SYSTEM_SECURITY_ROLE))

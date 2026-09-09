@@ -7,6 +7,7 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 from config import BASE_URL
+from config import SYSTEM_ADMIN_ROLE
 from core.base import get_headers, assert_success, assert_business_fail, request_wrapper
 
 DEPT_BASE = f"{BASE_URL}/system/dept"
@@ -49,7 +50,7 @@ def query_depts(payload=None):
     if payload is None:
         payload = {"condition": {}, "pageNum": 1, "pageSize": 10}
     return request_wrapper("post", f"{DEPT_BASE}/list", msg="查询部门列表",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def create_dept(payload):
@@ -58,7 +59,7 @@ def create_dept(payload):
     POST /system/dept
     """
     return request_wrapper("post", DEPT_BASE, msg="新增部门",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def update_dept(dept_id, payload):
@@ -68,7 +69,7 @@ def update_dept(dept_id, payload):
     TODO: URL 与请求方式待抓包确认
     """
     return request_wrapper("put", f"{DEPT_BASE}/{dept_id}", msg="编辑部门",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def delete_dept(dept_id):
@@ -78,7 +79,7 @@ def delete_dept(dept_id):
     TODO: URL 与请求方式待抓包确认
     """
     return request_wrapper("delete", f"{DEPT_BASE}/{dept_id}", msg="删除部门",
-                           headers=get_headers())
+                           headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def batch_delete_depts(dept_ids):

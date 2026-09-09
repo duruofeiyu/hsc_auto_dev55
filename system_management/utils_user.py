@@ -8,6 +8,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..'))
 from config import BASE_URL
+from config import SYSTEM_ADMIN_ROLE
 from core.base import get_headers, assert_success, assert_business_fail, request_wrapper
 
 USER_BASE = f"{BASE_URL}/system/user"
@@ -55,7 +56,7 @@ def query_users(payload=None):
     if payload is None:
         payload = {"pageNum": 1, "pageSize": 10, "condition": {"deptCode": ""}}
     return request_wrapper("post", f"{USER_BASE}/list", msg="查询用户列表",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def create_user(payload):
@@ -64,7 +65,7 @@ def create_user(payload):
     POST /system/user
     """
     return request_wrapper("post", USER_BASE, msg="新增用户",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def update_user(user_id, payload):
@@ -73,7 +74,7 @@ def update_user(user_id, payload):
     PUT /system/user/{user_id}
     """
     return request_wrapper("put", f"{USER_BASE}/{user_id}", msg="编辑用户",
-                           json=payload, headers=get_headers())
+                           json=payload, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def delete_user(user_id):
@@ -82,7 +83,7 @@ def delete_user(user_id):
     DELETE /system/user/{user_id}
     """
     return request_wrapper("delete", f"{USER_BASE}/{user_id}", msg="删除用户",
-                           headers=get_headers())
+                           headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def batch_delete_users(user_ids):
@@ -91,7 +92,7 @@ def batch_delete_users(user_ids):
     DELETE /system/user/batch
     """
     return request_wrapper("delete", f"{USER_BASE}/batch", msg="批量删除用户",
-                           json={"ids": user_ids}, headers=get_headers())
+                           json={"ids": user_ids}, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def reset_user_password(user_id, new_password="XingDing@2024"):
@@ -100,7 +101,7 @@ def reset_user_password(user_id, new_password="XingDing@2024"):
     TODO: 路径待抓包确认
     """
     return request_wrapper("put", f"{USER_BASE}/{user_id}/password", msg="重置密码",
-                           json={"password": new_password}, headers=get_headers())
+                           json={"password": new_password}, headers=get_headers(SYSTEM_ADMIN_ROLE))
 
 
 def get_user_detail(user_id):
@@ -110,4 +111,4 @@ def get_user_detail(user_id):
     TODO: URL 待抓包确认
     """
     return request_wrapper("get", f"{USER_BASE}/{user_id}", msg="查询用户详情",
-                           headers=get_headers())
+                           headers=get_headers(SYSTEM_ADMIN_ROLE))
