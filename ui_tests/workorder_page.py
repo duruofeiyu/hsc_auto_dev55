@@ -107,6 +107,35 @@ class VulnListPage(BasePage):
             self.page.wait_for_timeout(500)
         raise AssertionError(f"[{self.module}] 尝试了所有可用行，处置面板仍未弹出（后端 500/超时？）")
 
+    # ---------------- 处置覆盖辅助（供 test_disposal_modes.py 使用）----------------
+    def count_disposable_rows(self) -> int:
+        """当前列表里「处置」按钮可用的行数（即待处理的可处置漏洞数）。"""
+        return len(self._clickable_dispose_rows())
+
+    def first_disposable_row_text(self) -> str:
+        """返回首个可处置行的整行文本（动作后按文本定位防假绿）。"""
+        rows = self._clickable_dispose_rows()
+        return rows[0].inner_text() if rows else ""
+
+    def find_disposed_item_by_core(self, core: str):
+        """按「稳定特征串」在刷新后的列表里找回同一条漏洞行（防假绿核心）。
+
+        core 由 _stable_core() 生成：去掉状态词/空白后的整行文本，状态变化不影响匹配。
+        返回该行的整行文本；找不到（已离开待处理列表视图）返回 None。
+        """
+        import re as _re
+        if not core:
+            return None
+        rows = self.page.locator(".el-table tbody tr")
+        for i in range(rows.count()):
+            try:
+                t = _re.sub(r"\s+", "", rows.nth(i).inner_text())
+            except Exception:
+                continue
+            if core and core in t:
+                return rows.nth(i).inner_text()
+        return None
+
 
 class DisposalPanel(BasePage):
     """处置弹窗：先选处置方式「派单」，再填审批人/运维人员/级别/描述 → 提交
@@ -136,8 +165,8 @@ class DisposalPanel(BasePage):
     # 按钮
     SUBMIT_BTN = "提交"
     CANCEL_BTN = "取消"
-    # 成功提示（实际前端弹出的 Message 文案是「派单成功」）
-    SUCCESS_HINT = "派单成功"
+    # 成功提示（实际前端弹出的 Message 文案：派单=「派单成功」，其余处置=「处置成功」）
+    SUCCESS_HINTS = ("派单成功", "处置成功")
 
     def is_open(self) -> bool:
         """处置面板是否处于打开状态（以任一处置方式 radio 可见为标志）。"""
@@ -260,13 +289,14 @@ class DisposalPanel(BasePage):
           信号1：成功 Message（.el-message--success 内含「派单成功」）
           信号2：处置面板关闭（派单 radio 消失），说明提交动作已完成并进入后续流程
         """
-        # 信号1：成功 Message
-        try:
-            msg = self.page.locator(".el-message--success", has_text=self.SUCCESS_HINT).first
-            msg.wait_for(state="visible", timeout=4000)
-            return
-        except Exception:
-            pass
+        # 信号1：成功 Message（派单成功 / 处置成功 任一即可）
+        for hint in self.SUCCESS_HINTS:
+            try:
+                msg = self.page.locator(".el-message--success", has_text=hint).first
+                msg.wait_for(state="visible", timeout=4000)
+                return
+            except Exception:
+                continue
         # 信号2：处置面板已关闭（radio「派单」不可见）→ 视为提交成功进入流程
         radio = self.page.locator("label.el-radio", has_text=self.DISPATCH_RADIO).first
         try:
@@ -275,6 +305,45 @@ class DisposalPanel(BasePage):
             raise AssertionError(
                 f"派单提交后既未见成功提示'{self.SUCCESS_HINT}'，处置面板也未关闭。"
             )
+
+    def is_mode_present(self, mode: str) -> bool:
+        """处置方式 radio（修复/确认/派单/忽略/误报）是否在面板中存在可见。"""
+        return self.page.locator("label.el-radio", has_text=mode).count() > 0
+
+    def fill_reason(self, text: str,
+                    hints=("原因", "说明", "备注", "意见")) -> bool:
+        """处置面板里 忽略/误报 等通常需要填原因/说明：尝试多种 placeholder 填充。
+
+        返回是否成功填到某个框（找不到原因框返回 False，由调用方决定是否必需）。
+        """
+        for h in hints:
+            for sel in (f"textarea[placeholder*='{h}']", f"input[placeholder*='{h}']"):
+                c = self.page.locator(sel).first
+                try:
+                    if c.count() and c.is_visible():
+                        c.fill(text)
+                        self.page.wait_for_timeout(500)
+                        return True
+                except Exception:
+                    continue
+        # 退而求其次：面板内第一个可见 textarea
+        ta = self.page.locator(".el-dialog:visible textarea, .el-drawer:visible textarea").first
+        try:
+            if ta.count() and ta.is_visible():
+                ta.fill(text)
+                self.page.wait_for_timeout(500)
+                return True
+        except Exception:
+            pass
+        return False
+
+    def submit_mode(self, mode: str, reason: str = None):
+        """选处置方式并提交（忽略/误报可传 reason 填原因）；提交后用通用成功信号断言。"""
+        self.select_mode(mode)
+        if reason:
+            self.fill_reason(reason)
+        self.submit()
+        self.expect_submit_success()
 
     # ---------------- 内部辅助 ----------------
     def _pick_select(self, label: str, option: str):
