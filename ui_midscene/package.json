@@ -1,0 +1,15 @@
+{
+  "name": "hsc-ui-midscene-poc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HSC UI 自动化 PoC —— 基于 midscene.js 视觉驱动，免维护 CSS 选择器",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@midscene/web": "1.12.5",
+    "@playwright/test": "1.63.0",
+    "dotenv": "16.4.7"
+  }
+}
