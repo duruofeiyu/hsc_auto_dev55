@@ -1,7 +1,7 @@
 // 冒烟用例：用公共示例站验证 midscene 本地模型(ollama)能「看见页面 + 执行指令」，
 // 全程不涉及任何 HSC 数据，且截图零出境（合规要求）。
 // 运行：npx playwright test tests/smoke.spec.js
-// 前置：本机已 `brew install ollama` + `ollama pull qwen2.5vl:7b` + ollama 服务在跑(11434)
+// 前置：本机已 `brew install ollama` + `ollama pull qwen2.5vl:3b` + ollama 服务在跑(11434)
 const { test } = require('@playwright/test');
 const { PlaywrightAiFixture } = require('@midscene/web/playwright');
 
