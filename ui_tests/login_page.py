@@ -53,9 +53,11 @@ class LoginPage(BasePage):
 
         重试策略（针对 ddddocr 识别率不稳定的情况）：
         - 读出的码若不符合 HSC 验证码格式（4~5 位字母数字，排除中文/符号垃圾），
-          直接整页重载换一张新验证码，不浪费一次登录提交；
-        - 每次失败也整页重载，确保拿到全新的随机验证码（点击图片刷新在 HSC 不生效）；
-        - 最多尝试 max_attempts 次，远超原来的 3 次，靠「多试几张简单码」提高成功率。
+          直接点图换一张新验证码，不浪费一次登录提交；
+        - 每次失败也点图换码（HSC 验证码按会话只生成一次，整页 reload 不换码）；
+        - 换码后【等登录按钮脱离 loading/disabled 态】再进下一轮，
+          避免上次提交的 loading 还没结束就点一个禁用按钮导致超时；
+        - 最多尝试 max_attempts 次，靠「多试几张简单码」提高成功率。
 
         :param user: 账号
         :param password: 真实明文密码（无默认值，未设置会立即报错）
@@ -83,19 +85,21 @@ class LoginPage(BasePage):
             if not self.CAPTCHA_PATTERN.fullmatch(code):
                 print(
                     f"[captcha] 第{attempt}次识别结果 '{code}' 格式异常（应为4~5位字母数字），"
-                    "重载换一张重试"
+                    "点图换一张重试"
                 )
                 self._reload_for_captcha()
                 continue
 
             self.page.get_by_placeholder(self.CAPTCHA_INPUT).first.fill(code)
+            # 点击前确保按钮可点（脱离 loading/disabled），避免点禁用按钮
+            self._wait_login_button_ready()
             self.page.get_by_role("button", name=self.LOGIN_BUTTON, exact=True).click()
 
             # 成功信号：精确的「登录」按钮消失（离开登录页进入系统）
             try:
                 self.page.get_by_role(
                     "button", name=self.LOGIN_BUTTON, exact=True
-                ).wait_for(state="hidden", timeout=5000)
+                ).wait_for(state="hidden", timeout=8000)
                 if save_state:
                     os_makedirs_auth()
                     self.page.context.storage_state(path=UI_AUTH_STATE_FILE)
@@ -104,7 +108,7 @@ class LoginPage(BasePage):
                 last_err = self._read_error()
                 print(
                     f"[captcha] 第{attempt}次登录失败（提交 '{code}'），"
-                    f"重载换一张重试。页面提示：{last_err or '（无）'}"
+                    f"换一张重试。页面提示：{last_err or '（无）'}"
                 )
                 self._reload_for_captcha()
                 continue
@@ -121,6 +125,30 @@ class LoginPage(BasePage):
     def _fill_credentials(self, user: str, password: str):
         self.page.get_by_placeholder(self.ACCOUNT_INPUT).first.fill(user)
         self.page.get_by_placeholder(self.PASSWORD_INPUT).first.fill(password)
+
+    def _wait_login_button_ready(self, timeout: float = 8000):
+        """等「登录」按钮可点（脱离 loading/disabled 态）。
+
+        登录请求发起后按钮会加 `is-loading` + disabled；若上一次提交失败、
+        在按钮还在 loading 时立刻重试，点一个禁用按钮会一直超时。
+        这里显式等按钮重新 enabled，确保下一轮点击有效。
+        """
+        btn = self.page.get_by_role("button", name=self.LOGIN_BUTTON, exact=True)
+        try:
+            self.page.wait_for_function(
+                """() => {
+                    const btns = [...document.querySelectorAll('button')]
+                        .filter(b => b.textContent.trim() === '登录' && !b.textContent.includes('绑定'));
+                    const b = btns[0];
+                    return !!b && !b.disabled && !b.classList.contains('is-loading');
+                }""",
+                timeout=timeout,
+            )
+        except Exception:
+            # 兜底：按钮若已脱离 DOM（可能跳转/重渲染），不强求，交给后续点击容错
+            if btn.count() == 0:
+                return
+            self.page.wait_for_timeout(1500)
 
     def _reload_for_captcha(self):
         """点击验证码图片刷新出一张全新的随机验证码。

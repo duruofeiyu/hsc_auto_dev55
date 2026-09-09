@@ -21,6 +21,7 @@
 import os
 import sys
 import json
+import argparse
 
 try:
     from playwright.sync_api import sync_playwright
@@ -33,19 +34,67 @@ PROJECT_ROOT = os.path.dirname(HERE)           # hsc_auto_dev55/
 
 # 复用 config 里的 UI 前端地址 + 环境标识，避免写死（必须先于下方文件名引用）
 sys.path.insert(0, PROJECT_ROOT)
-from config import UI_WEB_BASE_URL, ENV  # noqa: E402
-
-STATE_FILE = os.path.join(UI_DIR, ".auth", "state.json")
-TOKEN_FILE = os.path.join(PROJECT_ROOT, f"token_{ENV}.txt")
-AUTH_HEADERS_FILE = os.path.join(PROJECT_ROOT, f"auth_headers_{ENV}.json")
+from config import (  # noqa: E402
+    UI_WEB_BASE_URL,
+    ENV,
+    UI_TEST_USER,
+    UI_TEST_PASSWORD,
+    UI_ROLE_USERS,
+    UI_ROLE_PASSWORDS,
+)
+from login_page import LoginPage  # noqa: E402
 
 
 def main():
+    parser = argparse.ArgumentParser(description="从 UI 登录态导出接口认证 token")
+    parser.add_argument(
+        "--role", default=None,
+        help="角色 key（对应 config.UI_ROLE_USERS 的 key）。"
+             "不传则导出默认 token（用 state.json，对应 chenyh 业务账号）；"
+             "传 admin/system_security/operation 等则用 state_<role>.json 导出 auth_headers_<ENV>_<role>.json",
+    )
+    args = parser.parse_args()
+    role = args.role
+
+    # 按角色+环境选择 state 文件与导出文件（带 ENV 后缀隔离 55/123）：
+    #   无 role -> state_{ENV}.json / auth_headers_{ENV}.json（默认业务 token）
+    #   有 role -> state_{ENV}_{role}.json / auth_headers_{ENV}_{role}.json
+    STATE_FILE = os.path.join(UI_DIR, ".auth", f"state_{ENV}_{role}.json" if role else f"state_{ENV}.json")
+    TOKEN_FILE = os.path.join(PROJECT_ROOT, f"token_{ENV}.txt")
+    AUTH_HEADERS_FILE = os.path.join(
+        PROJECT_ROOT,
+        f"auth_headers_{ENV}_{role}.json" if role else f"auth_headers_{ENV}.json",
+    )
+
+    # state 不存在则自动登录生成（按 role 选用对应账号，避免手动先跑登录冒烟）
     if not os.path.exists(STATE_FILE):
-        sys.exit(
-            "未找到登录态文件：%s\n请先运行 UI 登录冒烟生成它：\n"
-            "  ./venv/bin/python ui_tests/test_login.py -v -s" % STATE_FILE
-        )
+        if role:
+            user = UI_ROLE_USERS.get(role)
+            password = UI_ROLE_PASSWORDS.get(role)
+        else:
+            user, password = UI_TEST_USER, UI_TEST_PASSWORD
+        if not password:
+            sys.exit(
+                f"未找到登录态文件：{STATE_FILE}\n"
+                f"且角色 {role or '默认(chenyh)'} 的密码未注入，无法自动登录。\n"
+                f"请先设置对应明文密码环境变量后重试。"
+            )
+        print(f">>> 登录态缺失，自动登录角色 {role or '默认'}（账号 {user}）生成 {STATE_FILE}")
+        try:
+            from playwright.sync_api import sync_playwright
+            with sync_playwright() as p:
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+                )
+                ctx = browser.new_context(ignore_https_errors=True)
+                page = ctx.new_page()
+                LoginPage(page).login_with_captcha(user, password, save_state=False)
+                ctx.storage_state(path=STATE_FILE)
+                browser.close()
+            print(f">>> 已生成登录态：{STATE_FILE}")
+        except Exception as e:
+            sys.exit(f"自动登录失败：{e}")
 
     # 同时收集 Authorization 与 X-Access-Token（去重保序）
     captured_auth = []
