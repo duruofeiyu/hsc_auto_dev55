@@ -4,7 +4,10 @@
 // ⚠️ 防假绿约定（陈宇航要求）：所有「操作成功」不能只信 UI 即时提示，
 //    必须 reload 后用 aiQuery 提取列表数值做硬断言（before/after 比对），
 //    确认状态真的持久化变更，杜绝「提示成功但刷新后打回」的假绿。
-// ⚠️ 合规红线：本文件访问 HSC 真实界面，只能本地/合规环境跑，禁止截图传公有云。
+// ⚠️ 合规红线默认：本文件访问 HSC 真实界面，原则上只本地/合规环境跑。
+//    【已授权例外】2026-09-10 质量负责人陈宇航明确授权：55 为内部测试环境、
+//    不含真实客户数据，允许用云端模型跑本文件（截图传阿里云），属 deliberate exception，
+//    年审问起可追溯此授权。生产/演示环境绝不走此路径。
 import { test, expect } from '@playwright/test';
 import { PlaywrightAiFixture } from '@midscene/web/playwright';
 
@@ -14,7 +17,7 @@ const aiTest = test.extend(PlaywrightAiFixture());
 // ---- 用例 1：处置面板「派单」冒烟 ----
 aiTest('处置面板-派单 自然语言冒烟', async ({ page, ai, aiAssert, aiQuery }) => {
   await page.goto('/');
-  await ai('进入「系统漏洞管理」菜单，等待漏洞列表加载完成');
+  await ai('点击左侧「脆弱性管理」菜单，在展开的子菜单中点击「系统漏洞管理」，等待漏洞列表加载完成');
 
   // 防假绿①：先记录「待处理」数量基准（aiQuery 提数值，硬比对）
   const before = await aiQuery('返回漏洞列表中状态为「待处理」的数量，只返回 {"count": 数字}');
@@ -28,7 +31,7 @@ aiTest('处置面板-派单 自然语言冒烟', async ({ page, ai, aiAssert, ai
 
   // 防假绿②：刷新后复核持久性，不轻信 UI 成功提示
   await page.reload();
-  await ai('进入「系统漏洞管理」菜单，等待漏洞列表加载完成');
+  await ai('点击左侧「脆弱性管理」菜单，在展开的子菜单中点击「系统漏洞管理」，等待漏洞列表加载完成');
   const after = await aiQuery('返回漏洞列表中状态为「待处理」的数量，只返回 {"count": 数字}');
   expect(after.count).toBe(before.count - 1);
 });
@@ -37,7 +40,7 @@ aiTest('处置面板-派单 自然语言冒烟', async ({ page, ai, aiAssert, ai
 aiTest('处理结论-提交复核 自然语言冒烟', async ({ page, ai, aiAssert, aiQuery }) => {
   await page.goto('/');
 
-  await ai('进入「系统漏洞管理」菜单，等待漏洞列表加载完成');
+  await ai('点击左侧「脆弱性管理」菜单，在展开的子菜单中点击「系统漏洞管理」，等待漏洞列表加载完成');
   const before = await aiQuery('返回列表中状态为「待处理」的工单数量，只返回 {"count": 数字}');
 
   await ai('点击列表中第一条状态为「待处理」的工单，打开处理面板');
@@ -47,7 +50,7 @@ aiTest('处理结论-提交复核 自然语言冒烟', async ({ page, ai, aiAsse
 
   // 防假绿：刷新后复核「待处理」数量是否真减 1
   await page.reload();
-  await ai('进入「系统漏洞管理」菜单，等待漏洞列表加载完成');
+  await ai('点击左侧「脆弱性管理」菜单，在展开的子菜单中点击「系统漏洞管理」，等待漏洞列表加载完成');
   const after = await aiQuery('返回列表中状态为「待处理」的工单数量，只返回 {"count": 数字}');
   expect(after.count).toBe(before.count - 1);
 });
