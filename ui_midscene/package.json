@@ -5,7 +5,11 @@
   "description": "HSC UI 自动化 PoC —— 基于 midscene.js 视觉驱动，免维护 CSS 选择器",
   "scripts": {
     "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "check:model": "node check_model.mjs",
+    "bridge": "node bridge_hsc.mjs",
+    "bridge:pending": "node bridge_hsc.mjs --pending",
+    "bridge:login": "node bridge_login.mjs"
   },
   "devDependencies": {
     "@midscene/web": "1.12.5",

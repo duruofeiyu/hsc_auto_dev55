@@ -23,7 +23,8 @@ module.exports = defineConfig({
   ],
   use: {
     // 有头模式：你能亲眼看到 AI 操作浏览器（调试时推荐）
-    headless: false,
+    // 无头跑（如 CI）用 HSC_HEADLESS=1
+    headless: process.env.HSC_HEADLESS === '1',
     // HSC 55 用自签证书，chromium 默认不信任，必须忽略证书错误才能打开
     ignoreHTTPSErrors: true,
     viewport: { width: 1600, height: 900 },

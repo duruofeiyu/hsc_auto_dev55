@@ -9,3 +9,9 @@ test-results/
 playwright-report/
 .cache/
 *.log
+
+# midscene 运行产物（每跑一次生成的 HTML 报告 + 日志，可达数 MB）
+midscene_run/
+
+# macOS
+.DS_Store
