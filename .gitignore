@@ -13,6 +13,9 @@ env/
 reports/
 allure-results/
 allure-report/
+allure-advanced/
+allure-basic/
+test-logs/
 *.html
 
 # 日志
@@ -39,7 +42,7 @@ auth_headers.json
 auth_headers_*.json
 
 # UI 登录态（storage_state，含会话 cookie，不可入库）
-ui_tests/.auth/
+ui/tests/.auth/
 
 # 临时文件
 *.tmp

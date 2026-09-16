@@ -45,12 +45,12 @@ _ENVIRONMENTS = {
     "55": {
         "name": "55开发环境",
         "base_url": "https://192.168.124.55:26400/hsc-system-api",
-        "web_base_url": "https://192.168.124.55:26400/hsc-system-web",
+        "web_base_url": "https://192.168.124.55:26400",
     },
     "123": {
         "name": "123测试环境",
         "base_url": "https://192.168.124.123:26400/hsc-system-api",
-        "web_base_url": "https://192.168.124.123:26400/hsc-system-web",
+        "web_base_url": "https://192.168.124.123:26400",
     },
 }
 
@@ -82,21 +82,29 @@ UI_TEST_USER = os.getenv("HSC_UI_USER", "chenyh")
 UI_TEST_PASSWORD = os.getenv("HSC_UI_PASSWORD", "")
 
 # UI 登录态持久化（storage_state 会话复用），避免每条用例重复过验证码
-# 默认放在 ui_tests/.auth/state_{ENV}.json，已纳入 .gitignore，不会入库
+# 默认放在 ui/tests/.auth/state_{ENV}.json，已纳入 .gitignore，不会入库
 # （带 ENV 后缀隔离 55/123 两环境登录态，避免互相污染）
 UI_AUTH_STATE_FILE = os.path.join(
-    os.path.dirname(__file__), "ui_tests", ".auth", f"state_{ENV}.json"
+    os.path.dirname(__file__), "ui", "tests", ".auth", f"state_{ENV}.json"
 )
 
-# HSC 前端（Web）地址：与接口 BASE_URL 不同，前端在 /hsc-system-web 下
-# 实测：开发服务器 192.168.124.55:26400 的登录页为 /hsc-system-web/#/login
+# HSC 前端（Web）地址：与接口 BASE_URL 不同——前端在【根路径】，接口在 /hsc-system-api 下。
+# ⚠️ 2026-09-10 实测（55 与 123 表现一致）：
+#   - 前端路由是 history 模式、base='/'\，地址里【不能】加 /hsc-system-web 前缀；
+#     加了之后「已登录态」访问会渲染前端「500 非常抱歉，服务器出错了」错误页
+#     （看着像后端挂了，其实接口全 200）。
+#   - 该前缀只在「未登录」时看不出来：登录守卫会先把请求跳到 /login，所以
+#     export_token.py / refresh_state.py / 登录用例一直跑得通，把问题掩盖了；
+#     只有「已登录后直接 goto 前端路径」（如各 PageObject.open()）才会踩雷。
+#   - 正确写法：UI_WEB_BASE_URL + "/assetDiscover"（路径式）；
+#     旧写法 UI_WEB_BASE_URL + "/#/assetDiscover" 里的 hash 会被忽略、落到首页。
 UI_WEB_BASE_URL = os.getenv("HSC_UI_WEB_BASE_URL", _ENV_CFG["web_base_url"])
 
 # ============================================================
 # UI 多角色账号（权限收口后，业务操作分散到不同角色账号）
 # 每个角色从【独立环境变量】读取明文密码，无默认值（必须注入）。
 # 账号名默认按角色标识，若实际账号名不同请用 HSC_UI_<ROLE>_USER 覆盖。
-# 每个角色独立 storage_state 文件，统一放 ui_tests/.auth/state_<role>.json
+# 每个角色独立 storage_state 文件，统一放 ui/tests/.auth/state_<role>.json
 # （该目录已被 .gitignore 忽略，不会入库）。
 # 角色清单（对应 HSC 55 环境权限收口后的 5 类账号 + 原 chenyh）：
 #   admin           系统管理员（全权限，用于 4.1 超管全见 / 全局配置）
@@ -127,7 +135,7 @@ UI_ROLE_PASSWORDS = {
 # 每个角色独立登录态（storage_state 会话复用），避免每条用例重复过验证码
 # 带 ENV 后缀隔离 55/123 两环境登录态
 UI_ROLE_STATE_FILES = {
-    role: os.path.join(os.path.dirname(__file__), "ui_tests", ".auth", f"state_{ENV}_{role}.json")
+    role: os.path.join(os.path.dirname(__file__), "ui", "tests", ".auth", f"state_{ENV}_{role}.json")
     for role in UI_ROLE_USERS
 }
 

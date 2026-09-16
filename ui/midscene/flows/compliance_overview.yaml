@@ -1,0 +1,70 @@
+# ============================================================================
+# 合规运营 → 合规预览（路由 /ComplianceOverview —— 首字母大写！来自菜单树实拉）
+# 只读冒烟：页面可达 + 内容渲染 + 采集真实文本（第二轮再收紧断言）
+# ============================================================================
+
+page:
+  url: /ComplianceOverview
+
+tasks:
+  - name: "[前置] 页面健康检查"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const url = location.href;
+          if (/\/login(\/|\?|#|$)/.test(url)) {
+            throw new Error('被重定向到登录页：' + url + '（登录态问题）');
+          }
+          const t = (document.body.innerText || '').replace(/\s+/g, '');
+          if (t.length < 400 && /服务器出错|服务器错误/.test(t)) {
+            throw new Error('「服务器出错」错误页（环境或路由问题）');
+          }
+          return 'len=' + t.length;
+        name: page_health
+
+  - name: "SC-001 合规预览页-内容采集（首轮取证，二轮收紧）"
+    continueOnError: true
+    flow:
+      - aiWaitFor: 页面出现了业务内容区域（卡片、表格或图表之一）
+        timeout: 15000
+      - javascript: |
+          const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+          const body = norm(document.body.innerText);
+          // 面包屑/页签/卡片标题等结构信息一次拉回，供人工核对页面身份
+          const crumbs = Array.from(document.querySelectorAll('.el-breadcrumb__inner, .el-tabs__item'))
+            .map((e) => norm(e.textContent)).filter(Boolean).slice(0, 10);
+          const cards = Array.from(document.querySelectorAll('.el-card__header'))
+            .map((e) => norm(e.textContent)).filter(Boolean).slice(0, 12);
+          const tables = document.querySelectorAll('.el-table').length;
+          if (body.length < 300) throw new Error('页面正文过短(' + body.length + ')，疑似未渲染完成或路由错误');
+          return JSON.stringify({ crumbs, cards, tables, head: body.slice(0, 220) });
+        name: page_evidence
+
+  - name: "SC-001 合规预览-数据自洽硬断言（二轮收紧）"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+          const body = norm(document.body.innerText);
+          // ① 本页专有元素：综合评分（合规预览的招牌卡片，落错页立刻红）
+          if (!body.includes('综合评分')) throw new Error('没看到「综合评分」卡片，当前页可能不是合规预览');
+          if (!body.includes('合规系统')) throw new Error('没看到「合规系统」统计，页面内容不完整');
+          // ② 任务页签计数自洽：全部 = 进行中+已完成+待开始+失败+已停止（首轮实测 90=0+57+0+33+0）
+          const tabs = Array.from(document.querySelectorAll('.el-tabs__item')).map((e) => norm(e.textContent));
+          const grab = (label) => {
+            const hit = tabs.find((t) => t.startsWith(label));
+            return hit ? Number((hit.match(/(\d+)/) || [])[1]) : null;
+          };
+          const all = grab('全部任务');
+          const parts = ['进行中', '已完成', '待开始', '失败', '已停止'].map(grab);
+          if (all == null || parts.some((p) => p == null)) throw new Error('任务页签计数解析失败: all=' + all + ' parts=' + JSON.stringify(parts));
+          const sum = parts.reduce((a, b) => a + b, 0);
+          if (sum !== all) throw new Error('页签计数不自洽：全部任务 ' + all + ' ≠ 五状态之和 ' + sum + '（' + JSON.stringify(parts) + '）');
+          return 'OK：全部任务=' + all + '，综合评分/合规系统卡片齐全';
+        name: self_consistency
+
+  - name: "SC-001 AI 旁证：页面整体渲染正常"
+    continueOnError: true
+    flow:
+      - aiAssert: 当前是合规运营相关的业务页面，内容区域正常渲染（有卡片、表格或统计数字），不是报错页或空白页
+        errorMessage: 合规预览页渲染异常

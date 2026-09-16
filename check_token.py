@@ -109,7 +109,7 @@ def probe_token(method, url, headers, timeout=(5, 15)):
 
 def try_refresh(role):
     """调用 export_token.py 重抓（需 playwright 登录态）。返回成功与否。"""
-    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_tests", "export_token.py")
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui", "tests", "export_token.py")
     if not os.path.exists(script):
         print("  未找到 export_token.py，无法自动重抓")
         return False

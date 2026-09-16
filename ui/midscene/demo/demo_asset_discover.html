@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="682j1oqZmWg4bEsCpom8iZ">
+  <head data-page-node-id="088NbsrCo1khKf3WAbWNyC">
+    <meta charset="utf-8" data-page-node-id="iutnq3fCdj1szktmCgCExu" />
+    <title>资产发现 · 本地演示页</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #f5f6f8;
+        color: #1f2329;
+      }
+      .top {
+        height: 48px;
+        background: #2b3a4a;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        font-size: 14px;
+        gap: 22px;
+      }
+      .top .user {
+        margin-left: auto;
+        opacity: 0.85;
+      }
+      .wrap {
+        padding: 20px 24px;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 0 0 16px;
+        font-weight: 600;
+      }
+      .cards {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px 18px;
+        min-width: 250px;
+        flex: 1;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      }
+      .card .title {
+        font-size: 13px;
+        color: #646a73;
+        margin-bottom: 10px;
+      }
+      .card .num {
+        font-size: 30px;
+        font-weight: 600;
+        color: #1f2329;
+      }
+      .card .num small {
+        font-size: 13px;
+        font-weight: 400;
+        color: #8f959e;
+        margin-left: 6px;
+      }
+      .card canvas {
+        display: block;
+        margin-top: 8px;
+        width: 100%;
+        height: 70px;
+      }
+      .legend {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #646a73;
+        line-height: 1.9;
+      }
+    </style>
+  </head>
+  <body data-page-node-id="esDlIaSXt2EXFj3ByGEyfU">
+    <div class="top" data-page-node-id="OvrLKyCTnPaO4UuiwnxRsm">
+      <span data-page-node-id="sQLGmh01gSpcAvBEXdEuIj">智慧大屏</span><span data-page-node-id="tZd5qjAEcooszJpeC1DHma">资产管理</span><span data-page-node-id="VIOU7FojB2jrEoOw4QmDtL">脆弱性管理</span><span data-page-node-id="PAuqg8S0UbEMrLJGfgRJ9l">合规运营</span>
+      <span data-page-node-id="gQjorra3oKqzVFaEw5PEiA">系统管理</span><span class="user" data-page-node-id="mcL6jxT4DDVDugbDVQQlWq">普通管理员</span>
+    </div>
+
+    <div class="wrap" data-page-node-id="YBHAZ5cNZxoUbH1fW2UHde">
+      <h2 data-page-node-id="rodaQWqVBYjxJqtFlTOmx0">资产发现</h2>
+      <div class="cards" data-page-node-id="sKGxYJkjdVqwS6QesTD00g">
+        <!-- 卡片 1 -->
+        <div class="card" id="card-total" data-page-node-id="95yGL07cYjCG7XLueXXRd8">
+          <div class="title" data-page-node-id="rwWDqD58AhhO2nVEipaI2b">探测任务总数</div>
+          <div class="num" data-page-node-id="HwB7gh3c9HvQMzC8G9HfkO">87 <small data-page-node-id="5gzEUqDMbJlcAmZH6cr0hp">个</small></div>
+          <canvas id="c1" width="500" height="70" data-page-node-id="ViGFrmr2pQDQqohHrZAIb5"></canvas>
+        </div>
+
+        <!-- 卡片 2 -->
+        <div class="card" id="card-exec" data-page-node-id="FbZKG2kwzrlwgffDAebfPn">
+          <div class="title" data-page-node-id="jX3oOUZC8RNrQoYVqR17RT">任务执行概览</div>
+          <div class="num" data-page-node-id="vKsuE0DEzvdAWmHJOGoJmM">90.8<small data-page-node-id="2UHUDbnblcy2jlgEMfJq4Y">%</small></div>
+          <div class="legend" data-page-node-id="zGIwSMh21sADHPPQtlMGAn">
+            已完成 90.8% 79<br  data-page-node-id="XDzWMQxuxPtcqmIBDG1Brl"/>
+            执行中 0% 0<br  data-page-node-id="auwO1yn1TcPKOYB50VeYNj"/>
+            已失败 3.4% 3<br  data-page-node-id="nc3N1C89YzP4pEG8rNjREb"/>
+            已停止 5.7% 5<br  data-page-node-id="DSaJSBVu4VEXclKDX8qFZJ"/>
+            未启动 0% 0
+          </div>
+        </div>
+
+        <!-- 卡片 3 -->
+        <div class="card" id="card-act" data-page-node-id="yJsANAqvjMGltnWIVaILVI">
+          <div class="title" data-page-node-id="7fNGNqBlo30gK4035FGxpA">扫描活跃度</div>
+          <div class="num" data-page-node-id="Xia8LFA88qhVhwSupWUCjZ">28 <small data-page-node-id="ZA1r4Yspsh8DVE9DtjlvPw">次 / 近7天</small></div>
+          <canvas id="c3" width="500" height="70" data-page-node-id="PXA7Bww0hKGzH119H5G1Xe"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 画两条趋势折线，模拟 ECharts 的效果
+      function drawLine(id, data) {
+        const cv = document.getElementById(id);
+        if (!cv) return;
+        const ctx = cv.getContext('2d');
+        const w = cv.width, h = cv.height, pad = 6;
+        const max = Math.max(...data) || 1;
+        ctx.clearRect(0, 0, w, h);
+        ctx.beginPath();
+        data.forEach((v, i) => {
+          const x = pad + (i * (w - pad * 2)) / (data.length - 1);
+          const y = h - pad - ((v / max) * (h - pad * 2));
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        ctx.strokeStyle = '#3b7ddd';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.lineTo(w - pad, h - pad);
+        ctx.lineTo(pad, h - pad);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(59,125,221,0.10)';
+        ctx.fill();
+      }
+      drawLine('c1', [12, 18, 15, 24, 20, 9, 16]);
+      drawLine('c3', [3, 6, 4, 8, 5, 2, 7]);
+    </script>
+  </body>
+</html>
