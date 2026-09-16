@@ -1,4 +1,4 @@
-name: HSC55 Interface Automation
+name: HSC Interface Automation (55/123)
 
 on:
   push:
@@ -40,6 +40,12 @@ jobs:
         # testpaths 已在 pytest.ini 配置为 4 个接口模块（system_management/asset_management/vuln_management/compliance_operations）
         run: pytest -v --tb=short --alluredir=./reports/allure-results
         continue-on-error: true
+
+      # UI 驱动层解析单测（纯 Python，不需要 node/chromium/模型）：
+      # 回归历史上真正的 UI 侧 bug——run-yaml 输出解析（✗ 归因、多行 JSON 提取）。
+      # 真实 UI 用例（test_flow_driver / 各业务 flow）需内网+模型，不放进 CI job1。
+      - name: UI driver parser unit test
+        run: pytest ui/py/test_flow_parser.py -v --tb=short
 
       - name: Upload Allure results
         uses: actions/upload-artifact@v4
@@ -102,7 +108,7 @@ jobs:
         env:
           HSC_UI_USER: ${{ secrets.HSC_UI_USER }}
           HSC_UI_PASSWORD: ${{ secrets.HSC_UI_PASSWORD }}
-        run: pytest ui_tests -v --tb=short --alluredir=./reports/allure-results
+        run: pytest ui/tests -v --tb=short --alluredir=./reports/allure-results
         continue-on-error: true
 
       - name: Upload UI Allure results

@@ -1,338 +1,179 @@
-# HSC 55 开发环境 - 接口自动化测试框架
+# HSC 智慧医院网络安全驾驶舱 —— 自动化测试框架
 
-基于 pytest + requests + Allure 的接口自动化测试框架，覆盖 HSC 系统管理模块。
+接口自动化（pytest + requests + Allure + YAML 数据驱动）与 UI 自动化（Midscene 视觉驱动 + Playwright）
+共用一个仓库、一套环境开关。**55（开发）/ 123（测试）双环境一键切换**，覆盖系统管理 /
+资产管理 / 脆弱性管理 / 合规运营等模块。
 
-## 环境准备
+> 目录名 `hsc_auto` 不带环境标识——它同时跑 55 和 123，当前环境由项目根 `.env` 的 `HSC_ENV` 决定。
 
-### 1. Python 版本
-- Python 3.8+
-
-### 2. 创建虚拟环境
-```bash
-cd /Users/a1-6/hsc_auto_dev55
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. 安装依赖
-```bash
-pip install -r requirements.txt
-```
-
-### 4. 配置 Token
-从浏览器 F12 抓包获取 Token，粘贴到 `token.txt` 文件：
-```bash
-echo "你的token" > token.txt
-```
-> 也可在跑完 UI 登录后，用 `./venv/bin/python ui_tests/export_token.py` 自动从登录态导出（详见下方 UI 章节），免去手工抓包。
-
-## 运行测试
-
-### 运行全部用例
-```bash
-pytest
-```
-
-### 运行指定模块
-```bash
-pytest system_management/test_user.py
-pytest system_management/test_dept.py
-pytest system_management/test_role.py
-pytest system_management/test_menu.py
-pytest system_management/test_login.py
-```
-
-### 运行数据驱动用例
-```bash
-pytest system_management/test_user_data_driven.py
-pytest system_management/test_dept_data_driven.py
-pytest system_management/test_role_data_driven.py
-pytest system_management/test_menu_data_driven.py
-pytest system_management/test_login_data_driven.py
-```
-
-### 运行冒烟测试
-```bash
-pytest -m smoke
-```
-
-### 生成 Allure 报告
-```bash
-# 先运行测试
-pytest
-
-# 生成并打开报告
-allure serve reports/allure-results
-# 或生成静态报告
-allure generate reports/allure-results -o reports/allure-report --clean
-```
-
-### 运行指定优先级
-```bash
-pytest -m p1    # 优先级1
-pytest -m p2    # 优先级2
-```
-
-## 目录结构
+## 一、三十秒看懂全局（目录地图）
 
 ```
-hsc_auto_dev55/
-├── config.py                  # 全局配置（BASE_URL、Token 加载）
-├── conftest.py                # pytest 全局 fixture
-├── logger.py                  # 日志模块
-├── pytest.ini                 # pytest 配置
-├── requirements.txt           # 依赖列表
-├── .gitignore                 # Git 忽略规则
-├── .pre-commit-config.yaml    # pre-commit 配置
-├── pyproject.toml             # 项目配置
-├── token.txt                  # Token 文件（不提交到 Git）
+hsc_auto/
+│  ──── 接口自动化（成熟，主力） ────
+├── config.py                  # 唯一环境开关 + 双头认证 + 角色 token 文件 + ENV_IDS 环境化数据
+├── conftest.py                # 全局 fixture（temp_user/temp_dept... 建完自动清理）
+├── core/                      # base.py 请求封装、断言、重试；utils_sign.py x-sign 签名
+├── system_management/         # 用户/部门/角色/菜单/登录（utils_xxx 封装层 + test_xxx + 数据驱动版）
+├── asset_management/          # 资产管理
+├── vuln_management/           # 脆弱性管理（主机/网站/弱口令/基线/系统漏洞）
+├── compliance_operations/     # 合规运营
+├── data/                      # YAML 测试数据（数据驱动与逻辑分离）
 │
-├── data/                      # 数据驱动测试数据
-│   ├── user_data.yaml         # 用户模块测试数据
-│   ├── dept_data.yaml         # 部门模块测试数据
-│   ├── role_data.yaml         # 角色模块测试数据
-│   ├── menu_data.yaml         # 菜单模块测试数据
-│   └── login_data.yaml        # 登录模块测试数据
+│  ──── UI 自动化（统一入口 ui/，与接口框架分区；内部三层各司其职，见「三、UI 自动化」） ────
+├── ui/
+│   ├── py/                    # ★ 新用例一律写这里（Python/pytest + AI 流程驱动层 ai_flow.py）
+│   ├── midscene/              #   JS 执行内核（flows/ YAML 用例、登录态/环境体检、抓包工具，npm 工程）
+│   └── tests/                 #   存量 Playwright 选择器 POM（工单 34 条）+ 登录基建（login_page、.auth）
 │
-├── system_management/         # 系统管理模块
-│   ├── base.py                # 公共基础模块（请求封装、断言、x-sign 自动签名）
-│   ├── utils_sign.py          # x-sign 签名工具层（复刻前端算法）
-│   ├── utils_user.py          # 用户管理工具层
-│   ├── utils_dept.py          # 部门管理工具层
-│   ├── utils_role.py          # 角色管理工具层
-│   ├── utils_menu.py          # 菜单管理工具层
-│   ├── utils_login.py         # 登录管理工具层
-│   ├── test_user.py           # 用户模块测试（手工版）
-│   ├── test_dept.py           # 部门模块测试（手工版）
-│   ├── test_role.py           # 角色模块测试（手工版）
-│   ├── test_menu.py           # 菜单模块测试（手工版）
-│   ├── test_login.py          # 登录模块测试（手工版）
-│   ├── test_user_data_driven.py    # 用户模块测试（数据驱动版）
-│   ├── test_dept_data_driven.py    # 部门模块测试（数据驱动版）
-│   ├── test_role_data_driven.py    # 角色模块测试（数据驱动版）
-│   ├── test_menu_data_driven.py    # 菜单模块测试（数据驱动版）
-│   ├── test_login_data_driven.py   # 登录模块测试（数据驱动版）
-│   ├── test_menu_allure_advanced.py # Allure 进阶演示
-│   ├── cleanup_test_data.py    # 测试数据清理脚本
-│   └── generate_manual_testcases.py # 手工测试用例生成
-│
-├── reports/                   # 测试报告
-│   └── allure-results/        # Allure 原始数据
-│
-└── logs/                      # 日志文件
-    └── test_YYYYMMDD.log      # 按日期命名的日志
+│  ──── 支撑与产物 ────
+├── manual_testcases/ bugs/ tools/   # 手工用例、缺陷报告、辅助脚本
+├── reports/ logs/             # Allure 结果与日志（gitignore，随时可再生）
+├── .github/workflows/         # CI（质量门禁 + 手动触发的内网 job）
+├── .env                       # ★ 本机机密与开关（不入库）：HSC_ENV、各角色密码、token 相关
+└── token_*.txt / auth_headers_*.json  # 运行时认证文件（gitignore，由 export_token.py 生成）
 ```
 
-## 模块说明
+**两个 .env 别搞混**（高频踩坑）：
 
-### 公共基础模块 (base.py)
-- `get_headers()` — 构建请求头（动态读取 token）
-- `assert_success()` — 断言业务成功
-- `assert_business_fail()` — 断言业务失败
-- `request_wrapper()` — 统一请求封装（含 timeout、日志、异常处理）
-- `retry_on_failure()` — 失败重试装饰器
+| 文件 | 管什么 |
+|---|---|
+| `hsc_auto/.env`（项目根） | `HSC_ENV=55/123` 环境开关、各 UI 角色密码（`HSC_UI_*_PASSWORD`）、接口账号 |
+| `hsc_auto/ui/midscene/.env` | **Midscene 模型配置**（BASE_URL/KEY/NAME/FAMILY）、bridge 登录凭证 |
 
-### conftest.py 提供的 fixture
+改 UI 用例行为动第一个；换 AI 模型动第二个（改完跑 `cd ui/midscene && npm run check:model` 验证）。
 
-| Fixture | 作用 | 自动清理 |
-|---------|------|---------|
-| `temp_user` | 创建临时用户 | ✅ |
-| `temp_user_with_role` | 创建带角色的临时用户 | ✅ |
-| `temp_dept` | 创建临时部门 | ✅ |
-| `temp_child_dept` | 创建临时下级部门 | ✅ |
-| `temp_role` | 创建临时角色（签名失败返回 None） | ✅ |
-| `temp_menu` | 创建临时目录菜单 | ✅ |
-| `temp_menu_page` | 创建临时页面菜单 | ✅ |
-| `headers` | 获取请求头（session 级别） | - |
-| `token` | 获取 token（session 级别） | - |
-| `base_url` | 获取 BASE_URL（session 级别） | - |
+## 二、接口自动化
 
-## 数据驱动
-
-测试数据与测试逻辑分离，通过 YAML 文件管理测试数据。
-
-**运行数据驱动用例：**
+### 环境准备
 ```bash
-pytest system_management/test_user_data_driven.py -v
+cd ~/hsc_auto
+python3 -m venv venv && ./venv/bin/pip install -r requirements.txt
 ```
 
-**YAML 数据结构示例：**
-```yaml
-test_create_user:
-  - name: "正常新增用户"
-    input:
-      userAccount: "test_001"
-      userName: "测试用户"
-    expected:
-      success: true
-      code: 200
-```
-
-## x-sign 签名机制
-
-HSC 系统管理部分写接口（角色创建/编辑/删除等）需 `x-sign` 请求头做防篡改签名。本框架已在请求层自动计算并附加，用例无需关心。
-
-### 算法
-
-```
-X-Sign = MD5( JSON.stringify( 按 key 升序排序的 {query + params + data} 剔除 _t ) + SALT ).toUpperCase()
-```
-
-- 合并 URL query、axios `params`、请求体 `data`，按 key 升序排序
-- 剔除 `_t`（时间戳防重放参数，不计入签名）
-- 拼接前端写死盐值后取 MD5，结果转大写（标准 32 位大写 hex）
-
-### 盐值
-
-前端 `index-*.js` 写死常量，本框架在 `system_management/utils_sign.py::SIGN_SALT` 复刻：
-
-```
-SIGN_SALT = "dd05f1c54d63749eda95f9fa6d49v442a"
-```
-
-### 实现与集成
-
-- `system_management/utils_sign.py`：`compute_sign(url, params, data)` 完整复刻前端 `getSign`
-- `system_management/base.py`：`request_wrapper` 每次请求自动计算 `x-sign` 头（该层才有 url+params+data，全模块受益）
-- 验证样本：`MD5("{}"+SALT).upper() == E19D6243CB1945AB4F7202A1B00F77D5` ✅ 已逐字匹配
-
-> 注：55 开发环境当前不强制校验 x-sign（错误签名也能 200），但生产/其他环境可能校验，故框架仍按前端算法完整实现以保证可移植性。
-
-## CI/CD 持续集成
-
-本项目已配置 GitHub Actions，每次 push 到 main 分支自动触发测试。
-
-### 流水线功能
-
-- 自动安装依赖
-- 自动运行 pytest
-- 自动生成 Allure 测试报告
-- 测试日志和报告自动上传（保留 7 天）
-
-### 查看 CI 运行结果
-
-访问 GitHub 仓库 → Actions 标签页，可查看每次 push 的：
-
-- 用例执行结果（通过/失败数量）
-- 完整 pytest 输出日志
-- Allure 测试报告
-
-### 本地模拟 CI 环境
-
-由于 55 环境为内网 IP，GitHub Actions 虚拟机无法直接访问接口，CI 运行时接口请求会失败。
-
-本地验证 CI 流程：
-
+### 认证（不再手工 F12）
+token 由 UI 登录态自动导出（链路：浏览器登录 → `export_token.py` 拦截真实请求头 →
+`auth_headers_{ENV}_{role}.json` → `config.get_headers(role)` 动态读取）：
 ```bash
-# 安装 allure（macOS）
-brew install allure
-
-# 本地运行测试
-pytest
-
-# 生成报告
-allure serve reports/allure-results
+./venv/bin/python ui/tests/export_token.py                 # 默认角色
+./venv/bin/python ui/tests/export_token.py --role admin    # 指定角色（系统管理模块需要）
 ```
+> HSC 认证靠 `Authorization` + `X-Access-Token` 双头（同一 JWT），与会话 Cookie 无关；
+> token 短时会轮换，导出后尽快在同一轮里用掉。
 
-## UI 自动化测试（Playwright）
-
-除接口自动化外，本框架也支持 UI 自动化（选修方向），目录为 `ui_tests/`。
-
-### 目录结构
-
-```
-ui_tests/
-├── conftest.py             # 自定义 page fixture（headless chromium，忽略 https 错误）
-├── base_page.py            # 页面对象基类（通用导航 / 断言）
-├── login_page.py           # 登录页对象（含验证码 OCR 识别）
-├── utils_captcha.py        # 验证码识别封装（ddddocr）
-├── test_login.py           # 登录冒烟用例
-├── export_token.py         # UI 登录态 → 接口 Token 自动导出工具
-└── test_demo.py            # Playwright 本地 demo（访问 test.html）
-```
-
-### 安装依赖
-
+### 运行
 ```bash
-cd /Users/a1-6/hsc_auto_dev55
-./venv/bin/pip install playwright ddddocr
+pytest                                        # 全部接口用例（testpaths 只含 4 个接口模块）
+pytest system_management/test_user.py -v      # 单模块
+pytest system_management/test_user_data_driven.py -v   # 数据驱动
+pytest -m smoke                               # 冒烟标记
+allure serve reports/allure-results           # 看报告
 ```
 
-> 浏览器已缓存（位于 `~/Library/Caches/ms-playwright`），无需再执行 `playwright install`。
->
-> ⚠️ **zsh 行内注释坑**：macOS 默认 zsh 在交互模式下不会把行内 `#` 当作注释。若在同一行命令后写 `# 说明`，`#` 及其后的中文会被当成参数传给 pip，报 `Invalid requirement: '#'`。请使用项目 venv 路径、把注释单独成行，或直接不写注释。
-
-### 配置账号密码
-
-UI 登录需要 55 环境账号的**真实明文密码**（接口侧用的是加密串，UI 登录不能用）：
-
+### 环境切换与数据隔离
 ```bash
-export HSC_UI_USER=chenyh
-export HSC_UI_PASSWORD='你的55环境真实明文密码'   # 必填，无默认值
+export HSC_ENV=55    # 或 123；也写死在项目根 .env（当前默认 123）
+```
+- 跨环境不同的业务 ID 集中在 `config.py::ENV_IDS`，YAML 里用 `__PARENT_DEPT_ID__` 占位符，加载时自动替换；
+- 断言约定：HSC HTTP 恒 200，业务结果看 JSON 的 `code/success`（用 `assert_success`/`assert_business_fail`）。
+
+### x-sign 签名
+系统管理写接口需 `x-sign`（防篡改）。已在 `core` 请求层按前端算法自动计算（
+`MD5(按key升序的{query+params+data}剔除_t + SALT)` 大写），用例无感。盐值与算法见
+`system_management/utils_sign.py` 与提交历史。55 环境暂不强制校验，其他环境会。
+
+### conftest 提供的 fixture（建完自动清理）
+
+| Fixture | 作用 | | Fixture | 作用 |
+|---|---|---|---|---|
+| `temp_user` | 临时用户 | | `temp_role` | 临时角色（签名失败返回 None） |
+| `temp_user_with_role` | 带角色临时用户 | | `temp_menu` / `temp_menu_page` | 目录/页面菜单 |
+| `temp_dept` / `temp_child_dept` | 部门/下级部门 | | `headers` / `token` / `base_url` | session 级配置 |
+
+## 三、UI 自动化（三层架构 —— 为什么有三个目录）
+
+```
+你写用例的层        ui/py/        Python + pytest：用例设计、数据驱动、断言、Allure
+      │ run_flow("xxx", vars={...}) 经 subprocess 调 JS 内核（跑前自动体检登录态）
+流程描述层          ui/midscene/flows/*.yaml   自然语言写"点哪几下"，零选择器
+      │
+执行内核层          ui/midscene/  Playwright + Midscene(视觉模型) + DOM 硬断言 + 各种体检工具
 ```
 
-> 密码仅存在于环境变量，不会写入代码或入库；未设置时用例会立即报错提示。
+另有一层**不属于 Midscene 体系**的存量：`ui/tests/` 是早期纯选择器的 Playwright POM 用例
+（工单流程 34 条，`workorder_page.py` 那套），继续可跑、不再新增；它的**基础设施是共用的**：
+登录页对象、验证码识别（2026-09 起视觉模型优先 + ddddocr 兜底）、storage_state 登录态、
+`export_token.py` 都住在 ui/tests，被 ui/py/ui/midscene 复用。
 
-### 登录验证码（ddddocr 本地 OCR）
+**一句话：新 UI 用例写 `ui/py/`；`ui/midscene/` 里只加 YAML 流程和内核工具；`ui/tests/` 维持存量 + 提供登录基建。**
 
-HSC 登录页有图形验证码。UI 登录用例用 **ddddocr 本地离线 OCR** 自动识别：
-
-- `ui_tests/utils_captcha.py` 封装识别逻辑（未装 ddddocr 会给出清晰安装提示）。
-- `LoginPage.login_with_captcha` 读取验证码图片 base64 → 识别 → 填入 → 提交，识别错误**点击验证码图片刷新**后重试（默认 12 次，并通过 4~5 位字母数字格式校验）。
-- **会话复用（storage_state）**：首次登录成功后把会话存到 `ui_tests/.auth/state.json`，后续业务用例用 `authed_page` fixture 直接带状态进入，**不再重复识别验证码**。会话过期时用 `HSC_FORCE_LOGIN=1` 强制重登。
-
-### 运行 UI 测试
-
+### 跑法
 ```bash
-./venv/bin/pytest ui_tests -v -s
-./venv/bin/pytest ui_tests/test_login.py -v -s          # 只跑登录冒烟（含验证码识别）
-HSC_FORCE_LOGIN=1 ./venv/bin/pytest ui_tests/test_login.py -v -s   # 强制重新登录
+cd ~/hsc_auto
+./venv/bin/pytest ui/py -v                          # 全部 UI 用例（真实环境，需内网可达）
+./venv/bin/pytest ui/py/test_flow_driver.py -v      # 离线自测（不碰内网，CI 冒烟用）
+./venv/bin/pytest ui/py/test_vuln_overview.py -v    # 单模块
+
+# 内核直跑（调试 YAML 用）
+cd ui/midscene
+npm run check:model      # 模型连通性 3 秒定性
+npm run check:env        # 环境体检：用例跑红先分清"环境问题"还是"用例问题"
+npm run auth             # 登录态体检 + 过期自动重登
+npm run capture -- /assetDiscover   # 抓页面接口（F12 替身）
+node scripts/run-yaml.js flows/vuln_overview.yaml --var EXPECT_TOTAL=2583
 ```
 
-- 第一条跑全部 UI 用例；第二条只跑登录冒烟（验证验证码识别链路）。
-- 用例失败时，`ui_tests/conftest.py` 会自动截图并附加到 Allure 报告（与接口侧「失败有迹可循」一致）。
+### 方法论（详见 `ui/midscene/README.md` 与学习笔记《Midscene UI 自动化》）
+- **DOM 干确定的事，AI 只兜底 + 交叉验证**：读数/计数/激活态用 `javascript` DOM 硬断言（0 成本、
+  精确），视觉模型只负责"人眼才看得懂"的部分——实测同页 DOM 数到 27 行待处理、AI 只看到 4 行，
+  断言权永远归 DOM。
+- **防假绿三件套**：断言钉本页专有文案（落错页立刻红）、成功操作后刷新回查（不轻信 toast）、
+  每流程第 0 步页面体检（登录守卫 + 错误页识别）。
+- **123 会话很短**（实测约 10 分钟且疑有单点互踢）：`run_flow` 跑前自动体检登录态并自愈，
+  不要手工长期复用旧 state 文件。
+- 路由以菜单树接口为准（`/hsc-system-api/system/auth/routes`），前端在根路径、**别加 `/hsc-system-web` 前缀**。
 
-查看 UI 的 Allure 报告：
+### 登录与验证码（ui/tests 基建，被全体系复用）
+- 视觉大模型优先（复用 `ui/midscene/.env` 的模型，实测 qwen3.8-max 对 123 弧线扭曲码稳定），
+  ddddocr 兜底：`ui/tests/utils_captcha.py`。2026-09-15 曾因 ddddocr 对 123 验证码 12 连败，
+  教训与诊断脚本见 `ui/tests/diagnose_login_once.py`（抓登录接口响应原文定性，别猜）。
+- 各角色登录态：`ui/tests/.auth/state_{ENV}_{role}.json`（gitignore）。
 
+### 模型配置（ui/midscene/.env）
+当前：公司 token-plan 网关 OpenAI 兼容入口 + `qwen3.8-max`（`MIDSCENE_MODEL_FAMILY=qwen3`）。
 ```bash
-allure serve reports/allure-results
+MIDSCENE_MODEL_BASE_URL="https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="sk-..."
+MIDSCENE_MODEL_NAME="qwen3.8-max"
+MIDSCENE_MODEL_FAMILY="qwen3"
 ```
+> 注意：该网关另有 `/apps/anthropic` 入口（Anthropic 协议），Midscene 用不了，别配错。
+> Chrome 插件的 Config 面板与 `.env` 是**两套独立配置**，改模型要各改各的。
+> 备用（已注释在 .env）：智谱 GLM-4.6V。调试嫌慢可临时换网关里的 `qwen3.8-flash`。
 
-### UI 登录态 → 接口 Token 自动导出（export_token.py）
+## 四、CI/CD
 
-UI 登录成功后，会话已存到 `ui_tests/.auth/state.json`。`export_token.py` 用 Playwright 加载该登录态、在浏览器里真实触发一次 API 请求，**拦截浏览器发出的真实 `Authorization` 和 `X-Access-Token` 两个头**并写入项目根，**免去手工 F12 抓包粘贴**：
+`.github/workflows/pytest.yml` 两个 job：
+- **push 触发（job1）**：装依赖 → 全量跑接口 pytest → 上传 allure-results/报告/日志。
+  注意 GitHub 托管 Runner **访问不到公司内网**，此 job 的用例通过率不代表真实结果，
+  它的价值是验证"收集得起来、跑测流程与报告管线不坏"。
+- **UI E2E（job2，仅手动 `Run workflow`）**：内网可达环境下跑 `pytest ui/tests`（存量选择器用例）。
+- 真实回归（接口 + `ui/py` 视觉用例）目前主要**本地跑**（公司 55/123 环境不允许 CI 批量创建类操作）。
+  可自动化的部分（`ui/py/test_flow_driver.py` 离线自测）后续可挂进 job1。
 
+## 五、常见故障速查
+
+| 症状 | 处置 |
+|---|---|
+| UI 用例挂在登录页 | `cd ui/midscene && npm run auth`（123 会话 ~10min 一换）；ui/py 会自动体检，不用管 |
+| 登录 12 连败、页面"无提示" | 十有八九验证码识别失效 → `./venv/bin/python ui/tests/diagnose_login_once.py` 看接口原文 |
+| 用例跑红但不知道谁的锅 | 先 `npm run check:env`（环境问题）再看 `midscene_run/report/`（AI 框选落点）|
+| 模型 401 / Invalid URL | key 或地址被引号/注释污染，对照本文「模型配置」四行 |
+| 接口用例 401 | token 过期 → `export_token.py` 重导（按角色 `--role`） |
+| 数据驱动断言"总数不符" | 环境业务数据本身变了：先拿实际值核对，是 bug 提 bug，是数据漂移改期望值 |
+
+## 六、数据清理
 ```bash
-# 前提：先跑过 UI 登录冒烟，生成登录态
-./venv/bin/pytest ui_tests/test_login.py -v -s
-# 导出认证信息（Mac 用 python3 或 ./venv/bin/python，没有 python 命令）
-./venv/bin/python ui_tests/export_token.py
+./venv/bin/python system_management/cleanup_test_data.py   # 清理接口测试脏数据
 ```
-
-- 采用**实时拦截请求头**方式：HSC 的 token 不在 localStorage 顶层（实测直接读 localStorage 会得到无效令牌、调接口 401），只有浏览器实际发出的 `Authorization` 头才是服务器认可的 token，故直接拦截最可靠。
-- **同时抓取 `Authorization` 与 `X-Access-Token`**：HSC 接口认证同时验这两个头（值同 JWT）。脚本一并抓取写入 `auth_headers.json`，`config.get_headers()` 优先读取 `auth_headers.json`、不存在时回退到 `token.txt`。
-- **不依赖 Cookie**：HSC 浏览器会话 cookie 里只有 `HMACCOUNT`/`Hm_lvt` 等统计类 cookie，**无任何认证 cookie**（已用 Playwright `context.cookies()` 实测确认）。`base.py` 的裸 `requests.request` 不带 Cookie 也不影响认证，故无需附加 Cookie 头（v3 曾错误地附加 Cookie，沙箱对照实验证明 Cookie 与认证无关）。
-- 依赖 Playwright（与登录冒烟同一套），需能访问 55 内网；token 原样写入（不篡改前缀）。
-- `auth_headers.json` / `token.txt` 已纳入 `.gitignore`，不会入库。
-- 若拦截不到（登录态失效），脚本会提示重新跑 UI 登录冒烟后再试。
-- 导出后接口用例 `get_headers()` 自动读取，实现「一次登录，两边通用」。
-
-### 设计说明
-
-- 采用 **Page Object 模式**：页面交互封装在 `base_page.py` / `login_page.py` / `utils_captcha.py` 中，用例只关心业务步骤与断言（与接口侧 `base.py` + `utils_*.py` 风格一致）。
-- 账号密码从环境变量读取（`HSC_UI_USER` / `HSC_UI_PASSWORD`）。账号默认 `chenyh`，**密码无默认值、必须显式设置**（UI 登录需要 55 环境 chenyh 的真实明文密码，不能用接口侧的加密串；未设置时用例会立即报错提示）。不硬编码。
-- 登录验证码用 **ddddocr 本地 OCR** 自动识别（`login_with_captcha`），并通过 **storage_state 会话复用**（`authed_page` fixture）避免每条用例重复过验证码。
-
-### CI 中的 UI 测试
-
-接口主流程（`.github/workflows/pytest.yml` 的 `test` job）只跑 `system_management`，保持绿色、不依赖内网可达性。
-
-UI 测试单独放在 `ui-e2e` job，**仅手动触发**（`Actions` 页面 → `Run workflow`）。原因：UI 目标环境为内网 `192.168.124.55`，GitHub 托管 Runner 无法访问，仅在具备可达环境（自托管 Runner / VPN / 本地 `act`）时运行。该 job 会自动安装 Playwright 浏览器（`playwright install --with-deps chromium`）并执行 `pytest ui_tests`，产物含 `ui-allure-results`。
-
-## 注意事项
-
-1. **Token 短时轮换**：HSC token 不仅在过期后失效，且每次导航/操作后都会生成新 token（短时轮换）。`export_token` 抓到的 token 须紧邻用于接口请求（同一轮内），离开浏览器会话独立调用易 401。建议「导出 token → 紧邻跑用例」
-2. **角色签名（x-sign）**：角色创建/编辑/删除接口需要 x-sign 签名，本框架已实现（见「x-sign 签名机制」章节）。55 环境接口偶发 500/401 时相关用例仍会 skip，属环境/账号问题，非签名问题
-3. **测试数据清理**：运行 `python system_management/cleanup_test_data.py` 可清理所有测试数据
-4. **环境隔离**：当前仅支持 55 开发环境，多环境切换待实现
-5. **CI 环境限制**：GitHub Actions 虚拟机无法访问内网 55 环境，CI 仅能验证用例收集和框架运行流程
+UI 用例产生的数据按"接口造数、接口清理"原则处理（见 `ui/py/test_asset_discover.py` 注释）。

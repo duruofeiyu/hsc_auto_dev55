@@ -13,5 +13,8 @@ playwright-report/
 # midscene 运行产物（每跑一次生成的 HTML 报告 + 日志，可达数 MB）
 midscene_run/
 
+# 本地演示页要入库（覆盖仓库根目录 .gitignore 里的 *.html 忽略规则）
+!demo/*.html
+
 # macOS
 .DS_Store

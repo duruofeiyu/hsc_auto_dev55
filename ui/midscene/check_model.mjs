@@ -27,9 +27,11 @@ if (apiKey.includes('PASTE_YOUR') || apiKey.includes('__')) {
   process.exit(1);
 }
 
-// 用一张 1x1 的白色图片做视觉输入，验证多模态接口
+// 用一张 64x64 的蓝色图片做视觉输入，验证多模态接口。
+// （曾用 1x1，被 qwen3.8-max 以「边长须 >10px」拒绝——1x1 对部分模型是非法参数，
+//   64x64 在各模型限制之内；真实用例发送的是整页截图，远大于此，不受影响。）
 const tinyPng =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAeElEQVR4nO3PUQkAIBTAwJfEzDbWEH4cwmABbrP2+brhgga0oAEtaEALGtCCBrSgAS1oQAsa0IIGtKABLWhACxrQgga0oAEtaEALGtCCBrSgAS1oQAsa0IIGtKABLWhACxrQgga0oAEtaEALGtCCBrSgAS1oQAsa0IIGtKABLWhACxrQgga0oAEtaEALGtCCBrSgAS1oQAseuwhu0YdVjn6RAAAAAElFTkSuQmCC';
 
 console.log('\n=== 发起一次最小视觉请求 ===');
 try {
@@ -60,10 +62,12 @@ try {
     console.log('✅ 模型与 key 均可用！响应片段：', body.slice(0, 200));
   } else {
     console.error('❌ 调用失败：', body.slice(0, 400));
-    if (body.includes('401') || body.includes('令牌')) {
-      console.error('\n👉 结论：key 无效/过期。请到 open.bigmodel.cn 重新复制 key。');
-    } else if (body.includes('不存在') || body.includes('model')) {
-      console.error('\n👉 结论：模型名 `' + model + '` 不可用。可改为 glm-5v-turbo 或 glm-4v-plus 再试。');
+    if (body.includes('401') || body.includes('invalid_api_key') || body.includes('令牌')) {
+      console.error('\n👉 结论：key 无效/过期/协议入口不对。核对 key 与 BASE_URL 是否同一平台。');
+    } else if (body.includes('invalid_parameter_error') && /image|宽度|长度|length and width/i.test(body)) {
+      console.error('\n👉 结论：模型与 key 已连通（能收到模型级参数校验说明鉴权已过），只是探针图片不满足该模型的尺寸限制 —— 请换更大的测试图。');
+    } else if (body.includes('不存在') || /model.*(not found|does not exist)/i.test(body)) {
+      console.error('\n👉 结论：模型名 `' + model + '` 在该平台不存在，核对模型列表里的拼写。');
     }
   }
 } catch (e) {

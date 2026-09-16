@@ -7,9 +7,9 @@
 
 用法（按环境批量 pytest 上限约 120s 拆批）：
   # 批 1（先跑）
-  ./venv/bin/python ui_tests/e2e_modules_lifecycle.py  系统漏洞管理 网站漏洞管理
+  ./venv/bin/python ui/tests/e2e_modules_lifecycle.py  系统漏洞管理 网站漏洞管理
   # 批 2（后跑）
-  ./venv/bin/python ui_tests/e2e_modules_lifecycle.py  弱口令管理 基线管理
+  ./venv/bin/python ui/tests/e2e_modules_lifecycle.py  弱口令管理 基线管理
 
 依赖：
 - e2e_workorder_flow.py 的链路 + VulnListPage(module=...) 已就位

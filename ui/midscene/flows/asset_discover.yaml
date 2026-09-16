@@ -1,0 +1,94 @@
+# ============================================================================
+# HSC 资产管理 → 资产发现（/assetDiscover）
+# 对应手工用例：TC-HSC55-SCAN-002 / 003 / 004
+# ============================================================================
+# 这个文件说明一件事：**YAML 描述的是「步骤」，不是「选择器」。**
+# 你看不到任何 .el-table / #app / nth-child —— 那部分由 AI 在运行时去找。
+#
+# 但更重要的教学点是这两种写法的分工：
+#   javascript（DOM 硬断言）：确定性的事 —— 元素在不在、文本对不对、数字等不等。
+#                            里面 throw 就是断言失败，结论 100% 可靠。
+#   aiAssert / aiQuery      ：人眼能看懂、代码难描述的事 —— 整体观感、图表、模糊判断。
+#                            但它是"模型判断"，有不确定性，别拿它当唯一依据。
+# 一句话：确定性的事交给 DOM，模棱两可的事才交给 AI。
+# ============================================================================
+
+page:
+  url: /assetDiscover
+
+tasks:
+  # --------------------------------------------------------------------------
+  # 任务 0｜环境体检 —— 每条 UI 用例都该有的第 0 步
+  # 为什么放在最前：环境挂了（后端 500 / 登录态失效）会让后面所有断言
+  # 报出与用例无关的失败。先花 1 秒确认"页面是好的"，后面失败才是真失败。
+  # --------------------------------------------------------------------------
+  - name: "[前置] 页面健康检查"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const url = location.href;
+          if (/\/login(\/|\?|#|$)/.test(url)) {
+            throw new Error('被重定向到登录页：' + url + '  → 先跑 npm run auth:force');
+          }
+          const t = (document.body.innerText || '').replace(/\s+/g, '');
+          if (t.length < 400 && /服务器出错|服务器错误/.test(t)) {
+            throw new Error('页面停在「服务器出错」错误页，不是业务页面（环境问题，不是用例问题）');
+          }
+          if (!t.includes('探测任务总数')) {
+            throw new Error('页面没有渲染出资产发现的内容区（后端接口可能挂了）');
+          }
+          return 'OK，已在资产发现页';
+        name: page_health
+
+  # --------------------------------------------------------------------------
+  # 任务 1｜统计卡片 —— DOM 硬校验（推荐写法）
+  # --------------------------------------------------------------------------
+  - name: "TC-HSC55-SCAN-002 统计卡片数据显示（DOM 硬校验）"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const txt = document.body.innerText || '';
+          const need = ['探测任务总数', '任务执行概览', '扫描活跃度'];
+          const miss = need.filter((n) => !txt.includes(n));
+          if (miss.length) throw new Error('缺少卡片: ' + miss.join(', '));
+          const out = {};
+          for (const n of need) {
+            const i = txt.indexOf(n);
+            out[n] = txt.slice(i + n.length, i + n.length + 20).replace(/\s+/g, ' ').trim();
+          }
+          return JSON.stringify(out);
+        name: cards_text
+
+  # --------------------------------------------------------------------------
+  # 任务 2｜同一个测试点的 AI 版写法（对照用）
+  # 注意：它可能"打勾"却没真的验对，所以只适合做旁证，不适合当唯一依据。
+  # --------------------------------------------------------------------------
+  - name: "TC-HSC55-SCAN-002 统计卡片数据显示（AI 版 · 对照）"
+    continueOnError: true
+    flow:
+      - aiAssert: 页面顶部的统计卡片区域同时显示了「探测任务总数」「任务执行概览」「扫描活跃度」三项指标
+        errorMessage: 统计卡片区域不完整
+
+      - aiQuery: 读取「探测任务总数」卡片上的数值，只返回数字
+        name: probe_task_total
+
+  # --------------------------------------------------------------------------
+  # 任务 3｜数据驱动演示 —— 同一个 YAML，换 --var 就是一条新用例
+  #   node scripts/run-yaml.js flows/asset_discover.yaml --var EXPECT_TOTAL=87
+  # --------------------------------------------------------------------------
+  - name: "变量演示 · 期望「探测任务总数」= {{EXPECT_TOTAL}}"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const EXPECT = '{{EXPECT_TOTAL}}';
+          if (!EXPECT || EXPECT.indexOf('{{') === 0) {
+            return '未传 EXPECT_TOTAL，跳过比对（传法：--var EXPECT_TOTAL=87）';
+          }
+          const txt = document.body.innerText || '';
+          const m = txt.match(/探测任务总数[\s\S]{0,16}?(\d+)/);
+          const actual = m ? m[1] : null;
+          if (String(actual) !== String(EXPECT)) {
+            throw new Error('探测任务总数不一致：期望 ' + EXPECT + '，实际 ' + actual);
+          }
+          return '一致：' + actual;
+        name: expect_total_check

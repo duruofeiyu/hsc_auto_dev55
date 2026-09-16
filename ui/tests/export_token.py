@@ -13,10 +13,10 @@
   - 浏览器会话 Cookie 与认证无关（HSC cookie 里只有 HMACCOUNT/Hm_lvt 等统计类，无 satoken/JSESSIONID）。
   - v3 曾把 Cookie 也写进 auth_headers.json 并由 get_headers 附加，验证属于画蛇添足，已去除。
 
-前提：先成功运行过 UI 登录冒烟，生成 ui_tests/.auth/state.json。
+前提：先成功运行过 UI 登录冒烟，生成 ui/tests/.auth/state.json。
 用法：
-    cd /Users/a1-6/hsc_auto_dev55
-    ./venv/bin/python ui_tests/export_token.py     # 或 python3 ui_tests/export_token.py
+    cd /Users/a1-6/hsc_auto
+    ./venv/bin/python ui/tests/export_token.py     # 或 python3 ui/tests/export_token.py
 """
 import os
 import sys
@@ -29,8 +29,8 @@ except ImportError:
     sys.exit("需要 playwright：请先安装（pip install playwright 或 ./venv/bin/pip install playwright）。")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UI_DIR = HERE                                  # ui_tests/
-PROJECT_ROOT = os.path.dirname(HERE)           # hsc_auto_dev55/
+UI_DIR = HERE                                  # ui/tests/
+PROJECT_ROOT = os.path.dirname(os.path.dirname(HERE))  # hsc_auto/
 
 # 复用 config 里的 UI 前端地址 + 环境标识，避免写死（必须先于下方文件名引用）
 sys.path.insert(0, PROJECT_ROOT)
@@ -81,7 +81,11 @@ def main():
             )
         print(f">>> 登录态缺失，自动登录角色 {role or '默认'}（账号 {user}）生成 {STATE_FILE}")
         try:
-            from playwright.sync_api import sync_playwright
+            # 注意：sync_playwright 已在模块顶部导入。
+            # 这里不要再写 `from playwright.sync_api import sync_playwright`——
+            # 函数内的 import 会让该名字在整个 main() 里变成「局部变量」，
+            # 于是 state 文件已存在（不走进这个分支）时，
+            # 后面的 sync_playwright() 会抛 UnboundLocalError。
             with sync_playwright() as p:
                 browser = p.chromium.launch(
                     headless=True,
@@ -118,19 +122,19 @@ def main():
         page = context.new_page()
         page.on("request", on_request)
 
-        # 1) 进首页，触发 SPA 初始化与首批 API
+        # 1) 进首页，触发 SPA 初始化与首批 API（token 就是从这里抓到的）
+        # 注意：HSC 前端是 history 路由，地址里写 "/#/xxx" 的 hash 会被忽略、落到首页，
+        # 所以这里只开根路径，不再拼 hash；要用路径式地址请直接写 "/system/xxx"。
         try:
-            page.goto(UI_WEB_BASE_URL + "/#/", wait_until="networkidle", timeout=20000)
+            page.goto(UI_WEB_BASE_URL + "/", wait_until="networkidle", timeout=20000)
         except Exception as e:
             print("首页加载超时（忽略，继续）：", e)
         page.wait_for_timeout(2500)
 
-        # 2) 再进用户管理页，强制触发 /system/user/list 之类的数据接口
-        try:
-            page.goto(UI_WEB_BASE_URL + "/#/system/user", wait_until="networkidle", timeout=20000)
-        except Exception as e:
-            print("用户页加载超时（忽略，继续）：", e)
-        page.wait_for_timeout(2500)
+        # 2) 再进一个业务页，多触发一轮数据接口（同样用路径式，不带 hash）
+        # 说明：具体业务路由由后端菜单下发（/hsc-system-api/system/auth/routes），
+        # 各环境菜单可能不同，故这里不做硬编码跳转，只依赖首页那批请求即可。
+        page.wait_for_timeout(1500)
 
         browser.close()
 
@@ -138,8 +142,8 @@ def main():
         sys.exit(
             "未能拦截到任何带 Authorization 头的 API 请求。\n"
             "可能登录态已失效，请重新运行 UI 登录冒烟后再执行本脚本：\n"
-            "  ./venv/bin/pytest ui_tests/test_login.py -v -s\n"
-            "  ./venv/bin/python ui_tests/export_token.py"
+            "  ./venv/bin/pytest ui/tests/test_login.py -v -s\n"
+            "  ./venv/bin/python ui/tests/export_token.py"
         )
 
     # 取最后一次拦截到的值（通常是当前会话最新有效的 token）

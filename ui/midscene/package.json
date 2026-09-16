@@ -6,7 +6,13 @@
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
+    "auth": "node scripts/ensure_auth.js",
+    "auth:force": "node scripts/ensure_auth.js --force",
+    "yaml": "node scripts/run-yaml.js",
+    "yaml:demo": "node scripts/run-yaml.js flows/demo_local.yaml --var EXPECT_TOTAL=87",
     "check:model": "node check_model.mjs",
+    "check:env": "node scripts/check-env.js",
+    "capture": "node scripts/capture-api.js",
     "bridge": "node bridge_hsc.mjs",
     "bridge:pending": "node bridge_hsc.mjs --pending",
     "bridge:login": "node bridge_login.mjs"

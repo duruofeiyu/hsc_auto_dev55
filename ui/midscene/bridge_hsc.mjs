@@ -1,7 +1,7 @@
 // HSC 桥接模式脚本 v10（DOM 优先 + AI 兜底 + 自证式统计）
 //
 // 运行（在你自己的 Mac 终端）：
-//   cd /Users/a1-6/hsc_auto_dev55/ui_midscene
+//   cd /Users/a1-6/hsc_auto/ui/midscene
 //   node bridge_hsc.mjs              # 只看"本页第一页"的口径（v9 行为）
 //   node bridge_hsc.mjs --pending    # 追加：筛选 状态=待处理 → 读全库总数（能拿去用的数）
 //

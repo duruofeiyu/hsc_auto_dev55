@@ -1,0 +1,67 @@
+# ============================================================================
+# 系统管理 → 模板中心（路由 /template —— 实测：菜单树子节点 path 平挂根级，
+# 不拼父路径！/system/template 是 500 错误页，/template 才是正解）
+# common_admin 权限下系统管理只有模板中心/扫描配置/第三方服务，无用户/部门
+# （权限矩阵：用户部门=admin、角色菜单=secadmin；本冒烟只测本角色可见页）
+# 只读冒烟：页面可达 + 采集真实结构，二轮收紧
+# ============================================================================
+
+page:
+  url: /template
+
+tasks:
+  - name: "[前置] 页面健康检查"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const url = location.href;
+          if (/\/login(\/|\?|#|$)/.test(url)) {
+            throw new Error('被重定向到登录页：' + url + '（登录态问题）');
+          }
+          const t = (document.body.innerText || '').replace(/\s+/g, '');
+          if (t.length < 400 && /服务器出错|服务器错误/.test(t)) {
+            throw new Error('「服务器出错」错误页（环境或路由问题）');
+          }
+          return 'len=' + t.length;
+        name: page_health
+
+  - name: "SC-002 模板中心页-内容采集（首轮取证）"
+    continueOnError: true
+    flow:
+      - aiWaitFor: 页面出现了业务内容区域（菜单、表格或卡片之一）
+        timeout: 15000
+      - javascript: |
+          const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+          const body = norm(document.body.innerText);
+          const tabs = Array.from(document.querySelectorAll('.el-tabs__item'))
+            .map((e) => norm(e.textContent)).filter(Boolean).slice(0, 8);
+          const menus = Array.from(document.querySelectorAll('.el-menu-item, .el-sub-menu__title'))
+            .map((e) => norm(e.textContent)).filter(Boolean).slice(0, 10);
+          const tables = document.querySelectorAll('.el-table').length;
+          if (body.length < 300) throw new Error('正文过短(' + body.length + ')，未渲染或路由错');
+          return JSON.stringify({ tabs, menus, tables, head: body.slice(0, 220) });
+        name: page_evidence
+
+  - name: "SC-002 模板中心-结构硬断言（二轮收紧）"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+          // ① 本页专有 8 个子页签全在（模板中心的身份证，落到别的系统管理页立刻红）
+          const REQUIRED = ['主机策略', '网站策略', '基线模板', '系统字典', '弱口令字典', '弱口令策略', '端口管理', '标签管理'];
+          const tabs = Array.from(document.querySelectorAll('.el-tabs__item')).map((e) => norm(e.textContent));
+          const miss = REQUIRED.filter((r) => !tabs.some((t) => t === r || t.startsWith(r)));
+          if (miss.length) throw new Error('缺少子页签：' + JSON.stringify(miss) + '；可见=' + JSON.stringify(tabs));
+          // ② 模板表格列头含关键字段
+          const ths = Array.from(document.querySelectorAll('th')).map((e) => norm(e.textContent));
+          for (const need of ['模板名称', '策略总数']) {
+            if (!ths.some((h) => h.includes(need))) throw new Error('表格缺列「' + need + '」；表头=' + JSON.stringify(ths.slice(0, 12)));
+          }
+          return 'OK：8 页签齐全，表头含模板名称/策略总数';
+        name: structure_check
+
+  - name: "SC-002 AI 旁证：模板中心正常渲染"
+    continueOnError: true
+    flow:
+      - aiAssert: 当前是系统管理下的模板相关页面，内容正常渲染，不是报错页或空白页
+        errorMessage: 模板中心页渲染异常

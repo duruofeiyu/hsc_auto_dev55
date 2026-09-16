@@ -1,0 +1,76 @@
+# ============================================================================
+# 本地演示：资产发现页（demo/demo_asset_discover.html）
+# 用途：不依赖内网环境，直接看 YAML 链路跑通的完整样子。
+#
+# 跑法：
+#   node scripts/run-yaml.js flows/demo_local.yaml --var EXPECT_TOTAL=87     # 应全绿
+#   node scripts/run-yaml.js flows/demo_local.yaml --var EXPECT_TOTAL=999    # 应报红（演示断言生效）
+#
+# 这个文件回答了"怎么用 midscene 做 UI 自动化"：
+#   - 全程没有一行 CSS 选择器
+#   - 断言分两档：javascript（确定性，硬断言）+ aiAssert（模糊判断，旁证）
+#   - 同一份流程，换 --var 就是一条新用例（数据驱动）
+# ============================================================================
+
+page:
+  url: demo/demo_asset_discover.html
+
+tasks:
+  # --------------------------------------------------------------------------
+  # 1｜DOM 硬断言：确定性的检查，结论 100% 可靠、零 AI 成本
+  # --------------------------------------------------------------------------
+  - name: "TC-DEMO-001 资产发现页三张统计卡片可见"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const txt = document.body.innerText || '';
+          const need = ['探测任务总数', '任务执行概览', '扫描活跃度'];
+          const miss = need.filter((n) => !txt.includes(n));
+          if (miss.length) throw new Error('缺少卡片: ' + miss.join(', '));
+          return '三张卡片齐全';
+        name: cards_present
+
+      # 把卡片上的真实数值抓出来 —— 首轮跑最值钱的产出
+      - javascript: |
+          const txt = document.body.innerText || '';
+          const out = {};
+          for (const n of ['探测任务总数', '任务执行概览', '扫描活跃度']) {
+            const i = txt.indexOf(n);
+            out[n] = txt.slice(i + n.length, i + n.length + 18).replace(/\s+/g, ' ').trim();
+          }
+          return JSON.stringify(out);
+        name: cards_text
+
+  # --------------------------------------------------------------------------
+  # 2｜数据驱动：流程不变，只换断言里期望的值
+  #    --var EXPECT_TOTAL=87 → 绿；--var EXPECT_TOTAL=999 → 红
+  # --------------------------------------------------------------------------
+  - name: "TC-DEMO-002 探测任务总数 = {{EXPECT_TOTAL}}"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const EXPECT = '{{EXPECT_TOTAL}}';
+          if (!EXPECT || EXPECT.indexOf('{{') === 0) {
+            return '未传 EXPECT_TOTAL，跳过比对';
+          }
+          const txt = document.body.innerText || '';
+          const m = txt.match(/探测任务总数[\s\S]{0,16}?(\d+)/);
+          const actual = m ? m[1] : null;
+          if (String(actual) !== String(EXPECT)) {
+            throw new Error('数值不一致：期望 ' + EXPECT + '，实际 ' + actual);
+          }
+          return '一致：探测任务总数=' + actual;
+        name: expect_total
+
+  # --------------------------------------------------------------------------
+  # 3｜AI 断言：交给模型判断的那一类（这里拿"整体观感"举例）
+  #    注意它只作旁证 —— 断言权始终归 javascript。
+  # --------------------------------------------------------------------------
+  - name: "TC-DEMO-003 统计卡片区域整体展示正常（AI 判断）"
+    continueOnError: true
+    flow:
+      - aiAssert: 页面上方有三张横向排列的统计卡片，每张都有标题和一个数值，排版没有明显错乱
+        errorMessage: 统计卡片区域展示异常
+
+      - aiQuery: 读取「探测任务总数」这张卡片上的数值，只返回数字
+        name: ai_read_total

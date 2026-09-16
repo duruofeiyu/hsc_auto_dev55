@@ -1,7 +1,7 @@
 """
 登录页对象（Page Object 模式）
 
-选择器均经 ui_tests/debug_login.py 在 55 环境实测确认：
+选择器均经 ui/tests/debug_login.py 在 55 环境实测确认：
 - 账号输入框 placeholder="账号"
 - 密码输入框 placeholder="密码"
 - 验证码输入框 placeholder="验证码"
@@ -45,7 +45,14 @@ class LoginPage(BasePage):
         return self
 
     # ---------------- 验证码登录 ----------------
-    def login_with_captcha(self, user: str, password: str, save_state: bool = True, max_attempts: int = 12):
+    def login_with_captcha(
+        self,
+        user: str,
+        password: str,
+        save_state: bool = True,
+        state_path: str = None,  # 2026-09-15 新增：显式指定保存路径，不传回退 UI_AUTH_STATE_FILE
+        max_attempts: int = 12,
+    ):
         """带验证码识别的登录（ddddocr 本地 OCR + 智能重试）。
 
         成功后可保存 storage_state，供后续用例复用（会话复用），
@@ -101,8 +108,9 @@ class LoginPage(BasePage):
                     "button", name=self.LOGIN_BUTTON, exact=True
                 ).wait_for(state="hidden", timeout=8000)
                 if save_state:
-                    os_makedirs_auth()
-                    self.page.context.storage_state(path=UI_AUTH_STATE_FILE)
+                    target = state_path or UI_AUTH_STATE_FILE
+                    _makedirs_for(target)
+                    self.page.context.storage_state(path=target)
                 return self
             except Exception:
                 last_err = self._read_error()
@@ -226,7 +234,17 @@ class LoginPage(BasePage):
             return ""
 
 
+def _makedirs_for(path):
+    """确保目标登录态文件的目录存在（角色文件与默认文件目录不同，按入参建）。"""
+    import os
+
+    d = os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+
+
 def os_makedirs_auth():
+    # 兼容旧调用：默认路径版本
     import os
 
     d = os.path.dirname(UI_AUTH_STATE_FILE)

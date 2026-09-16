@@ -1,0 +1,122 @@
+# ============================================================================
+# HSC 脆弱性管理 → 系统漏洞管理（/assetsVuln）→ 资产漏洞页签 → 状态列筛选
+# 2026-09-16 用真实浏览器逐帧探明的 123 前端能力，推翻了两处旧假设：
+#   ① 55 的"筛选表单区 + el-select + 查询按钮"在 123 该页【不存在】（bridge v10 的
+#      DOM 路径在 123 会报"定位不到状态筛选下拉"）；
+#   ② 漏洞总览页签的「状态」列（待处理/修复中）在 123【没有筛选入口】——
+#      所以"筛状态=待处理→全库总数"在 123 没有产品能力支撑，不许照抄 55 硬造；
+#   ③ 真正的状态筛选在【资产漏洞】页签：状态列头漏斗图标（el-dropdown-link，
+#      click 触发、hover 无效），面板选项=资产在线状态「在线/离线」+「筛选/重置」按钮。
+# Element Plus 的 popper 常驻 DOM、display 切换；th 必须用 rect 判可见
+# （隐藏的漏洞总览表也有"状态"th，文本匹配会抓错）。
+# ============================================================================
+
+page:
+  url: /assetsVuln
+
+tasks:
+  - name: "[前置] 页面健康检查"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const url = location.href;
+          if (/\/login(\/|\?|#|$)/.test(url)) {
+            throw new Error('被重定向到登录页：' + url + '（登录态问题，非用例问题）');
+          }
+          const t = (document.body.innerText || '').replace(/\s+/g, '');
+          if (t.length < 400 && /服务器出错|服务器错误/.test(t)) {
+            throw new Error('页面停在「服务器出错」错误页（环境问题）');
+          }
+          if (!t.includes('漏洞总览') || !t.includes('资产漏洞')) {
+            throw new Error('页面缺少「漏洞总览/资产漏洞」页签（后端挂了或路由不对）');
+          }
+          return 'OK';
+        name: page_health
+
+  - name: "TC-VULN-002 资产漏洞页签-状态列筛选在线/离线"
+    continueOnError: true
+    flow:
+      - aiWaitFor: 页面中出现了数据表格
+        timeout: 15000
+      - javascript: |
+          const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+          const el = Array.from(document.querySelectorAll('.el-tabs__item')).find((x) => norm(x.textContent) === '资产漏洞');
+          if (!el) throw new Error('找不到「资产漏洞」页签');
+          if (!/is-active/.test(String(el.className))) el.click();
+          return 'OK';
+        name: tab_switch
+      - javascript: |
+          await new Promise((r) => setTimeout(r, 1200));
+          const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+          const vis = (x) => { const r = x.getBoundingClientRect(); return r.width >= 1 && r.height >= 1; };
+          // 精确「状态」列头：rect 可见 + 带 el-dropdown 触发器（排除隐藏的漏洞总览表头）
+          document.querySelectorAll('[data-hov]').forEach((e) => e.removeAttribute('data-hov'));
+          const th = Array.from(document.querySelectorAll('th'))
+            .find((x) => norm(x.textContent) === '状态' && vis(x) && x.querySelector('.el-dropdown-link'));
+          if (!th) throw new Error('资产漏洞页签没有可筛选的「状态」列头（123 前端可能又改版了）');
+          th.setAttribute('data-hov', '1');
+          return 'OK';
+        name: mark_trigger
+      - hoverAt: '[data-hov] .el-dropdown-link'
+        timeout: 8000
+      - javascript: |
+          await new Promise((r) => setTimeout(r, 900));
+          const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+          const vis = (x) => { const r = x.getBoundingClientRect(); return r.width >= 1 && r.height >= 1; };
+          // el-dropdown 触发器实测 click-only（hover 不弹），JS click 即可
+          let panel = Array.from(document.querySelectorAll('.el-popper')).filter(vis)
+            .find((p) => /el-dropdown__popper/.test(String(p.className)) && norm(p.innerText).length > 0);
+          if (!panel) {
+            const link = document.querySelector('[data-hov] .el-dropdown-link');
+            link.click();
+            await new Promise((r) => setTimeout(r, 900));
+            panel = Array.from(document.querySelectorAll('.el-popper')).filter(vis)
+              .find((p) => /el-dropdown__popper/.test(String(p.className)) && norm(p.innerText).length > 0);
+          }
+          if (!panel) throw new Error('hover+click 都没让状态下拉面板弹出');
+          // 选项列表（本面板为纯 li/checkbox 混合，统一按可见文本项提取）
+          const labels = Array.from(panel.querySelectorAll('.el-checkbox__label, li'))
+            .map((c) => norm(c.textContent)).filter((t) => t && t.length <= 8);
+          const target = labels.find((l) => l === '在线');
+          if (!target) throw new Error('状态下拉没有「在线」选项；可见选项=' + JSON.stringify(labels));
+          const opt = Array.from(panel.querySelectorAll('.el-checkbox, li, label'))
+            .find((x) => norm(x.textContent) === '在线');
+          opt.click();
+          await new Promise((r) => setTimeout(r, 400));
+          // 点面板里的「筛选」确认按钮（无按钮则视为即时生效）
+          const q = Array.from(panel.querySelectorAll('button'))
+            .map((x) => ({ x, t: norm(x.textContent) })).find((o) => o.t === '筛选' || o.t === '确定');
+          if (q) { q.x.click(); await new Promise((r) => setTimeout(r, 300)); }
+          document.body.click();   // 收起面板
+          await new Promise((r) => setTimeout(r, 1500));
+          return JSON.stringify({ labels, confirmed: !!q });
+        name: apply_filter
+      - javascript: |
+          // 校验一：状态列只剩「在线」；校验二：分页总数合法（≤ 未筛选时的量级）
+          const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+          const vis = (x) => { const r = x.getBoundingClientRect(); return r.width >= 1 && r.height >= 1; };
+          const tables = Array.from(document.querySelectorAll('.el-table')).filter((el) => !el.closest('.el-table__fixed') && vis(el));
+          if (!tables.length) throw new Error('筛选后表格不见了');
+          let best = null, bestRows = -1;
+          for (const c of tables) {
+            const n = Array.from(c.querySelectorAll('.el-table__body-wrapper tbody tr')).filter((tr) => tr.querySelector('td')).length;
+            if (n > bestRows) { best = c; bestRows = n; }
+          }
+          const hw = best.querySelector('.el-table__header-wrapper') || best.querySelector('.el-table__header');
+          const headers = hw ? Array.from(hw.querySelectorAll('th')).map((x) => norm(x.textContent)) : [];
+          const col = headers.findIndex((h) => h === '状态');
+          if (col < 0) throw new Error('筛选后找不到状态列；表头=' + JSON.stringify(headers));
+          const rows = Array.from(best.querySelectorAll('.el-table__body-wrapper tbody tr'))
+            .filter((tr) => tr.querySelector('td'))
+            .map((tr) => Array.from(tr.querySelectorAll('td')).map((td) => norm(td.textContent)));
+          const dist = {};
+          rows.forEach((cells) => { const v = cells[col] || '-'; dist[v] = (dist[v] || 0) + 1; });
+          const foreign = Object.keys(dist).filter((v) => v !== '在线');
+          if (foreign.length) throw new Error('筛选后状态列混有非在线值 ' + JSON.stringify(foreign) + '，分布=' + JSON.stringify(dist));
+          if (rows.length === 0) throw new Error('筛选后表格为空（环境异常：不应所有资产都无在线记录）');
+          const pt = ((best.parentElement.querySelector('.el-pagination') || document.querySelector('.el-pagination') || {}).innerText || '').match(/共\s*(\d+)\s*条/);
+          const total = pt ? Number(pt[1]) : null;
+          if (total == null) throw new Error('读不到分页「共 X 条」');
+          if (rows.length > total) throw new Error('本页 ' + rows.length + ' 行 > 总数 ' + total + '，数据不自洽');
+          return JSON.stringify({ rowCount: rows.length, statusDist: dist, onlineTotal: total });
+        name: verify_filtered

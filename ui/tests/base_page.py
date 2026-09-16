@@ -17,8 +17,14 @@ class BasePage:
 
     # -------- 通用导航 --------
     def open(self, path: str = ""):
-        """打开 HSC 前端页面。path 例如 '' 或 '/#/dashboard'。
-        前端基址用 UI_WEB_BASE_URL（/hsc-system-web），与接口 BASE_URL 不同。"""
+        """打开 HSC 前端页面。
+
+        前端基址用 UI_WEB_BASE_URL（根路径，如 https://192.168.124.55:26400），
+        与接口 BASE_URL（…/hsc-system-api）不同。
+        path 用【路径式】写法，例如 '' 或 '/assetDiscover'。
+        ⚠️ 不要写 '/#/xxx'（前端是 history 模式，hash 会被忽略、落到首页），
+           也不要加 '/hsc-system-web' 前缀（已登录态下会渲染 500 错误页）。
+        """
         hsc_url = UI_WEB_BASE_URL.rstrip("/") + path
         self.page.goto(hsc_url)
 

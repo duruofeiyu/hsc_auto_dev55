@@ -1,7 +1,7 @@
 // HSC 桥接模式 —— 登录脚本 v2（验证码自动重试版）
 //
 // 运行（在你自己的 Mac 终端）：
-//   cd /Users/a1-6/hsc_auto_dev55/ui_midscene
+//   cd /Users/a1-6/hsc_auto/ui/midscene
 //   node bridge_login.mjs
 //
 // 凭证在 .env 里（已 gitignore）：HSC_LOGIN_URL / HSC_USER / HSC_PASS
@@ -27,7 +27,7 @@ const PASS = process.env.HSC_PASS;
 const MAX_ATTEMPTS = Number(process.env.HSC_LOGIN_ATTEMPTS || 3);
 
 if (!USER || !PASS) {
-  console.error('[env] 缺少 HSC_USER / HSC_PASS。请在 ui_midscene/.env 里补上：');
+  console.error('[env] 缺少 HSC_USER / HSC_PASS。请在 ui/midscene/.env 里补上：');
   console.error('      HSC_USER="ceshi"');
   console.error('      HSC_PASS="你的密码"');
   process.exit(2);
