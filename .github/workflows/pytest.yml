@@ -1,4 +1,10 @@
-name: HSC Interface Automation (55/123)
+name: HSC Automation CI（质量门禁 + 内网手动回归）
+
+# 设计原则（2026-09-16 重构）：CI 上只跑【GitHub 机器做得到的事】。
+# 内网（192.168.x 私网）与模型网关从 GitHub 托管 Runner 不可达——
+# 历史上 push 触发的接口全量跑 5 次全部空转 30 分钟被 timeout 取消，
+# 413 条 FAILED 全是"连不上"而非用例错误（同码在本机全绿）。
+# 因此真实回归在本机跑（./venv/bin/pytest ...），CI 只做秒级门禁。
 
 on:
   push:
@@ -8,10 +14,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  # ── push / PR 自动跑：秒级质量门禁（不需要内网、不需要任何密钥）──
+  quality-gate:
+    name: Quality gate (no intranet needed)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,18 +41,43 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run pytest
-        env:
-          HSC_TOKEN: ${{ secrets.HSC_TOKEN }}
-        # testpaths 已在 pytest.ini 配置为 4 个接口模块（system_management/asset_management/vuln_management/compliance_operations）
-        run: pytest -v --tb=short --alluredir=./reports/allure-results
-        continue-on-error: true
+      # 收集检查：413 条接口用例全部可 import、parametrize 的 YAML 数据文件全部可加载、
+      # pytest.ini/conftest 无语法错——收集阶段就完成，纯离线、秒级
+      - name: Collect-only sanity check
+        run: pytest --collect-only -q
 
-      # UI 驱动层解析单测（纯 Python，不需要 node/chromium/模型）：
-      # 回归历史上真正的 UI 侧 bug——run-yaml 输出解析（✗ 归因、多行 JSON 提取）。
-      # 真实 UI 用例（test_flow_driver / 各业务 flow）需内网+模型，不放进 CI job1。
+      # UI 驱动层解析单测：回归 run-yaml 输出解析的真实历史 bug
+      # （✗ 乱序归因、多行 JSON 提取丢失）。纯逻辑零外部依赖
       - name: UI driver parser unit test
         run: pytest ui/py/test_flow_parser.py -v --tb=short
+
+  # ── 手动触发：接口全量回归。仅当 Runner 可达内网时结果才有意义 ──
+  # （GitHub 托管机不可达 → 需在自托管 Runner/VPN 环境点 Run workflow，
+  #  或接受这里跑出来的都是连不上的红，仅用于验证跑测流程与报告管线）
+  interface-full:
+    name: Interface full run (needs intranet; manual only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest (interface)
+        env:
+          HSC_TOKEN: ${{ secrets.HSC_TOKEN }}
+        run: pytest -v --tb=short --alluredir=./reports/allure-results
+        continue-on-error: true
 
       - name: Upload Allure results
         uses: actions/upload-artifact@v4
@@ -53,14 +85,6 @@ jobs:
         with:
           name: allure-results
           path: reports/allure-results
-          retention-days: 7
-
-      - name: Upload test logs
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-logs
-          path: logs
           retention-days: 7
 
       - name: Generate Allure Report
@@ -79,13 +103,11 @@ jobs:
           path: allure-history
           retention-days: 7
 
+  # ── 手动触发：存量 Playwright 选择器 UI 用例（同样需内网）──
   ui-e2e:
     name: HSC55 UI Automation (E2E)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # 目标环境为内网 192.168.124.55，GitHub 托管 Runner 无法访问，
-    # 故设为手动触发（Actions 页面 → Run workflow），仅在有可达环境
-    # （自托管 Runner / VPN / 本地 act）时运行。
     if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
