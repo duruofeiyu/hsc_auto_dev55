@@ -95,3 +95,56 @@ class TestFlowResultParser:
         r = _mk("", rc=0)
         assert r.tasks == []
         assert r.summary is None
+
+
+# ---------------------------------------------------------------------------
+# flow YAML 静态校验：不跑浏览器、不花模型调用，就能拦住"流程文件写坏"
+# 的整类事故（历史上真出现过：aiQuery 值含 {"count": 数字} 被 js-yaml
+# 当 flow mapping 解析、页面 url 忘写、步骤键名拼错等）。
+# ---------------------------------------------------------------------------
+import glob
+import os
+
+import yaml as _yaml
+
+FLOWS_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "midscene", "flows"
+)
+# 与 run-yaml.js 的 META_KEYS 保持一致（这些是"配置"不是"指令"）
+META_KEYS = {"name", "continueOnError", "errorMessage", "timeout",
+             "cacheable", "deepLocate", "deepThink", "context"}
+
+
+@allure.feature("UI 驱动层-flow 静态校验")
+class TestFlowYamlFiles:
+    @allure.title("全部 flow YAML 可解析且结构合法（零依赖，CI 门禁同款）")
+    def test_all_flows_parse_and_structured(self):
+        flows = sorted(glob.glob(os.path.join(FLOWS_DIR, "*.yaml")))
+        assert flows, f"flows 目录为空：{FLOWS_DIR}"
+
+        for fp in flows:
+            name = os.path.basename(fp)
+            with open(fp, encoding="utf-8") as f:
+                try:
+                    data = _yaml.safe_load(f)
+                except _yaml.YAMLError as e:
+                    raise AssertionError(f"{name}: YAML 语法错误（js-yaml 同款解析）：{e}")
+
+            assert isinstance(data, dict), f"{name}: 顶层必须是映射（page/tasks）"
+            assert (data.get("page") or {}).get("url"), \
+                f"{name}: 缺 page.url（深链接是这个体系稳定的第一道保险）"
+            tasks = data.get("tasks")
+            assert isinstance(tasks, list) and tasks, f"{name}: 缺 tasks 列表"
+
+            for ti, task in enumerate(tasks, 1):
+                assert isinstance(task, dict), f"{name}: tasks[{ti}] 不是映射"
+                assert task.get("name"), f"{name}: tasks[{ti}] 缺 name（报告里要靠它定位）"
+                flow = task.get("flow")
+                assert isinstance(flow, list) and flow, f"{name}: tasks[{ti}] 缺 flow 步骤"
+                for si, item in enumerate(flow, 1):
+                    cmds = [k for k in item if k not in META_KEYS]
+                    assert len(cmds) == 1, (
+                        f"{name}: tasks[{ti}].flow[{si}] 必须恰有一个指令键，"
+                        f"实际={cmds or '空'}（多写/拼错键名都会让 run-yaml 报 "
+                        f"'这一步没有可识别的指令'）"
+                    )

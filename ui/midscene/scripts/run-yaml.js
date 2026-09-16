@@ -283,7 +283,12 @@ async function main() {
       await waitForAppReady(page);
     }
 
-    const agent = new PlaywrightAgent(page);
+    // 缓存（2026-09-16 启用）：aiTap/aiInput 等定位结果与 aiAct 规划步骤落盘到
+    // midscene_run/cache/，重复回归时命中缓存直接回放，省模型调用与耗时；
+    // DOM 文本/结构变化会自动失效回退 AI（不会假命中）。查询类 API（aiQuery 等）不缓存。
+    const agent = new PlaywrightAgent(page, {
+      cache: { id: `hsc-flows-${env.ENV}` },
+    });
 
     for (const [i, task] of tasks.entries()) {
       const title = task.name || `任务${i + 1}`;

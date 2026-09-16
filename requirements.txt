@@ -1,31 +1,32 @@
 # 接口自动化测试框架依赖
+# 版本策略（2026-09-16 起）：直接依赖用 == 锁定为【实测通过】的版本，
+# 保证本机 / CI / 换电脑装出来的行为一致（此前全用 >=，版本随时漂、
+# 红了都不知道是不是依赖升级引起）。升级前先本地跑一遍回归再改这里。
+# 实测通过组合：macOS 本机 venv + GitHub Actions Ubuntu / Python 3.11
 
 # 核心框架
-pytest>=7.0
-requests>=2.28
-pyyaml>=6.0
+pytest==9.1.1
+requests==2.34.2
+pyyaml==6.0.3
 
 # 测试报告
-allure-pytest>=2.13
-pytest-html>=4.0
+allure-pytest==2.16.0
+pytest-html==4.2.0
 
 # 并行执行
-pytest-xdist>=3.0
-
-# 数据库（可选）
-# psycopg2-binary>=2.9
+pytest-xdist==3.8.0
 
 # 工具
-urllib3>=1.26
+urllib3==2.7.0
 
 # ============================================================
 # UI 自动化测试框架依赖 (Playwright)
-# 说明：UI 测试使用自定义 page fixture（见 ui_tests/conftest.py），
+# 说明：UI 测试使用自定义 page fixture（见 ui/tests/conftest.py），
 # 只需安装 playwright 即可运行；pytest-playwright 为可选插件。
 # 本地安装：pip install playwright && playwright install chromium
 # ============================================================
-playwright>=1.40
+playwright==1.62.0
 # pytest-playwright>=0.4   # 可选：若想用 pytest 内置 browser 夹具可取消注释
 
-# 验证码识别（UI 登录自动过验证码，本地离线 OCR，仅 UI 用例依赖）
-ddddocr>=1.4
+# 验证码识别（UI 登录兜底通道；主通道为视觉大模型，见 ui/tests/utils_captcha.py）
+ddddocr==1.6.1

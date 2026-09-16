@@ -1,0 +1,44 @@
+# ============================================================================
+# 系统管理 → 模板中心（/template）→ 侧边栏菜单采集
+# 用途：多角色权限 UI 用例的载体 —— 同一个流程，run_flow(role=...) 换角色跑，
+#       由 Python 侧断言"不同角色看到的菜单不同"（见 ui/py/test_role_permission.py）。
+# 为什么这条值得做：菜单/按钮的可见性是纯 UI 行为，接口层验证不了；
+#       而权限配错（该隐的没隐、该有的没有）是安全类产品的红线。
+# ============================================================================
+
+page:
+  url: /template
+
+tasks:
+  - name: "[前置] 页面健康检查"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const url = location.href;
+          if (/\/login(\/|\?|#|$)/.test(url)) {
+            throw new Error('被重定向到登录页：' + url + '（登录态问题，非用例问题）');
+          }
+          const t = (document.body.innerText || '').replace(/\s+/g, '');
+          if (t.length < 400 && /服务器出错|服务器错误/.test(t)) {
+            throw new Error('页面停在「服务器出错」错误页（环境问题）');
+          }
+          return 'OK';
+        name: page_health
+
+  - name: "系统管理-侧边栏菜单采集"
+    continueOnError: true
+    flow:
+      - aiWaitFor: 页面出现了左侧菜单和业务内容区域
+        timeout: 15000
+      - javascript: |
+          const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+          const vis = (el) => { const r = el.getBoundingClientRect(); return r.width >= 1 && r.height >= 1; };
+          // 左侧菜单：叶子项 + 分组标题（分组标题本身也是权限信号）
+          const menus = Array.from(document.querySelectorAll('.el-menu-item, .el-sub-menu__title'))
+            .filter(vis).map((el) => norm(el.textContent)).filter(Boolean);
+          // 顶部导航（模块级入口）
+          const tops = Array.from(document.querySelectorAll('.el-menu--horizontal .el-menu-item, .el-menu--horizontal .el-sub-menu__title'))
+            .filter(vis).map((el) => norm(el.textContent)).filter(Boolean);
+          if (!menus.length) throw new Error('左侧菜单没采到（页面结构可能变了）');
+          return JSON.stringify({ menus, tops: tops.slice(0, 12) });
+        name: side_menus
