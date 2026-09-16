@@ -31,7 +31,7 @@ hsc_auto/
 ├── reports/ logs/             # Allure 结果与日志（gitignore，随时可再生）
 ├── .github/workflows/         # CI（质量门禁 + 手动触发的内网 job）
 ├── .env                       # ★ 本机机密与开关（不入库）：HSC_ENV、各角色密码、token 相关
-└── token_*.txt / auth_headers_*.json  # 运行时认证文件（gitignore，由 export_token.py 生成）
+└── .secrets/                  # 运行时凭证（token_*.txt / auth_headers_*.json，gitignore，export_token.py 生成）
 ```
 
 **两个 .env 别搞混**（高频踩坑）：
@@ -43,6 +43,8 @@ hsc_auto/
 
 改 UI 用例行为动第一个；换 AI 模型动第二个（改完跑 `cd ui/midscene && npm run check:model` 验证）。
 
+> **按业务模块查用例？看 [`MODULES.md`](MODULES.md)** —— 8 个模块 × 接口/UI/手工三堆的总索引（含覆盖度与缺口）。
+
 ## 二、接口自动化
 
 ### 环境准备
@@ -53,7 +55,7 @@ python3 -m venv venv && ./venv/bin/pip install -r requirements.txt
 
 ### 认证（不再手工 F12）
 token 由 UI 登录态自动导出（链路：浏览器登录 → `export_token.py` 拦截真实请求头 →
-`auth_headers_{ENV}_{role}.json` → `config.get_headers(role)` 动态读取）：
+`.secrets/auth_headers_{ENV}_{role}.json` → `config.get_headers(role)` 动态读取）：
 ```bash
 ./venv/bin/python ui/tests/export_token.py                 # 默认角色
 ./venv/bin/python ui/tests/export_token.py --role admin    # 指定角色（系统管理模块需要）

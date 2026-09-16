@@ -1,0 +1,54 @@
+# ============================================================================
+# 组织权限页（/organization）访问结果采集 —— 多角色深链接权限用例的载体
+# 实测（2026-09-16，admin 点菜单实锤）：组织权限 = /organization（系统管理下子路由，
+# 路径平挂根级），admin 正常渲染「用户管理/部门管理」页签。
+# common_admin 越权直达 = 被拦截，表现为二者之一（**每次跑哪个不固定**，前端行为不一致）：
+#   a) 停在 /organization 渲染通用「500 服务器出错」页  b) 被整页跳转回默认页 /assetsOverview
+#   ★ UX 缺陷（待提前端）：越权访问应给 403/无权限提示，"服务器出错"会误导成系统故障。
+# 采集设计：两段"单次快照"（不做页内长轮询——拦截图是整页跳转，会把执行中的 JS
+# 打断（context destroyed），此前轮询写法的 flaky 根因）；Python 侧取最后一次
+# 成功的快照判定，任一段失败不阻塞另一段。
+# ============================================================================
+
+page:
+  url: /organization
+
+tasks:
+  - name: "[前置] 登录守卫"
+    continueOnError: true
+    flow:
+      - javascript: |
+          const url = location.href;
+          if (/\/login(\/|\?|#|$)/.test(url)) {
+            throw new Error('被重定向到登录页：' + url + '（登录态问题，非用例问题）');
+          }
+          return 'OK';
+        name: guard
+
+  - name: "组织权限页-快照A（1.5s）"
+    continueOnError: true
+    flow:
+      - sleep: 1500
+      - javascript: |
+          const t = (document.body.innerText || '').replace(/\s+/g, '');
+          return JSON.stringify({
+            landedPath: location.pathname,
+            errPage: /非常抱歉.*服务器出错|服务器出错/.test(t) && t.length < 300,
+            hasTable: !!document.querySelector('.el-table'),
+            tabs: Array.from(document.querySelectorAll('.el-tabs__item')).map((e) => String(e.textContent || '').trim()),
+          });
+        name: org_state_a
+
+  - name: "组织权限页-快照B（+3.5s，跳转后的最终态）"
+    continueOnError: true
+    flow:
+      - sleep: 3500
+      - javascript: |
+          const t = (document.body.innerText || '').replace(/\s+/g, '');
+          return JSON.stringify({
+            landedPath: location.pathname,
+            errPage: /非常抱歉.*服务器出错|服务器出错/.test(t) && t.length < 300,
+            hasTable: !!document.querySelector('.el-table'),
+            tabs: Array.from(document.querySelectorAll('.el-tabs__item')).map((e) => String(e.textContent || '').trim()),
+          });
+        name: org_state_b

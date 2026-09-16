@@ -54,7 +54,7 @@ tasks:
           const out = {};
           for (const n of need) {
             const i = txt.indexOf(n);
-            out[n] = txt.slice(i + n.length, i + n.length + 20).replace(/\s+/g, ' ').trim();
+            out[n] = txt.slice(i + n.length, i + n.length + 40).replace(/\s+/g, ' ').trim();
           }
           return JSON.stringify(out);
         name: cards_text

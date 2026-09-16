@@ -122,17 +122,28 @@ class TestVulnStatusFilter:
 @allure.epic("HSC 智慧医院网络安全驾驶舱")
 @allure.feature("脆弱性管理-系统漏洞")
 class TestVulnPagination:
-    """分页总数钉值（数据驱动）——环境数据会变，期望值按环境实测维护"""
+    """跨层一致性：UI 分页总数 == 接口 /vuln/host/list 的 total。
 
-    @allure.title("全库漏洞总数 = {{expect_total}}（数据驱动演示）")
-    @allure.severity(allure.severity_level.NORMAL)
-    # ⚠️ 2585 是 2026-09-16 123 实测值（9-15 为 2583，两天 +2：漏洞随扫描增长，
-    # 期望值会漂。跑红先拿 flow 输出里的实际值核对：是数据漂移就更新参数，是 bug 才提单。
-    # 长期方案：期望值改从接口层拿基线（vuln_management 已有查询封装），别在 UI 层钉总数。
-    @pytest.mark.parametrize("expect_total", ["2585"])
-    def test_total_data_driven(self, expect_total):
-        r = run_flow("vuln_overview", vars={"EXPECT_TOTAL": expect_total})
-        check = r.task("全库漏洞总数")
-        assert not check["failed"], (
-            f"分页总数不等于 {expect_total}（环境数据可能已变，重跑 flow 看实际值再更新）"
+    2026-09-16 优化：替换掉"钉死 2583/2585"的写法——漏洞数随扫描增长，
+    钉魔数两天就要人工改一次参数。改为与接口基线交叉验证后：
+    数据怎么涨都不误报，且顺带验证"前端分页统计与后端数据一致"。
+    """
+
+    @allure.title("全库漏洞总数：UI 分页 == 接口基线（跨层一致性）")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_total_matches_api(self):
+        from ui.py.api_baseline import vuln_host_total
+
+        r = run_flow("vuln_overview")
+        t = r.task("表格与状态分布")
+        assert not t["failed"], f"DOM 读取失败：{t['steps']}"
+        raw = t["results"].get("dom_table")
+        data = json.loads(raw) if isinstance(raw, str) else raw
+        ui_total = data.get("paginationTotal")
+        assert isinstance(ui_total, int) and ui_total >= 0, f"UI 分页总数非法：{ui_total}"
+
+        api_total = vuln_host_total()
+        assert ui_total == api_total, (
+            f"UI 分页({ui_total}) 与接口基线({api_total}) 不一致："
+            "统计口径变化或前后端不同步，都值得追"
         )

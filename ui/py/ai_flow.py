@@ -36,6 +36,15 @@ _AUTH_TTL = 60.0
 _auth_ok_at = {}  # (env, role) -> 最近一次体检通过的时间戳
 
 
+def _latest_report():
+    """取 midscene_run/report 下最新的 HTML 报告路径（失败归档用）。"""
+    d = os.path.join(UI_MIDSCENE, "midscene_run", "report")
+    try:
+        files = [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".html")]
+        return max(files, key=os.path.getmtime) if files else ""
+    except OSError:
+        return ""
+
 def _ensure_auth(run_env, ensure=True):
     """跑流程前体检登录态（npm run auth 同款逻辑：0.3s 探活，过期自动重登）。
 
@@ -183,6 +192,12 @@ def run_flow(flow, vars=None, role=None, env=None, timeout=900, ensure_auth=True
 
     if allure is not None:
         allure.attach(output, name=f"flow:{result.flow}", attachment_type=allure.attachment_type.TEXT)
+        if not result.all_passed:
+            # 失败现场归档：挂上 midscene HTML 报告路径（回看 AI 每一步框选落点用）
+            report = _latest_report()
+            if report:
+                allure.attach(report, name="midscene-report（失败时看图找偏）",
+                              attachment_type=allure.attachment_type.TEXT)
 
     if proc.returncode == 2:
         raise FlowError(
@@ -192,4 +207,8 @@ def run_flow(flow, vars=None, role=None, env=None, timeout=900, ensure_auth=True
         )
     if proc.returncode not in (0, 1):
         raise FlowError(f"run-yaml.js 异常退出（code={proc.returncode}）：\n{output[-800:]}")
+    if not result.tasks:
+        # rc=0/1 但一个任务块都没解析出来：run-yaml 在任务开始前就异常退出
+        # （浏览器启动失败/agent 装配失败/依赖损坏等）。抛原文，别让调用方吃 KeyError。
+        raise FlowError(f"run-yaml 在任务开始前异常退出（code={proc.returncode}）：\n{output[-900:]}")
     return result

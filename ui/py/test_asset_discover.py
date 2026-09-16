@@ -45,26 +45,40 @@ class TestAssetDiscoverCards:
             assert text, f"缺少「{name}」卡片（当前页可能不是资产发现页）"
             nums = re.findall(r"-?\d+(?:\.\d+)?", text)
             assert nums, f"「{name}」读不到数字：{text}"
-            for n in nums:
-                assert float(n) >= 0, f"「{name}」出现负数：{n}"
+            # 2026-09-16 实测修正：卡片含"较昨日 -12"这类环比值，带负号是合法业务数据
+            # （原"所有数字≥0"断言过粗，数据下降日会误报）。规则改为：
+            # ① 至少要有一个非负数值（计数本体）；② 百分比不得超过 100%。
+            positives = [n for n in nums if not n.startswith("-")]
+            assert positives, f"「{name}」没有任何非负数值：{text}"
+            for n in positives:
                 if f"{n}%" in text:
                     assert float(n) <= 100, f"「{name}」百分比越界：{n}%"
 
-    @allure.title("探测任务总数与期望值一致（数据驱动演示）")
-    @allure.severity(allure.severity_level.NORMAL)
-    # 期望值按环境维护（123：09-15=21，09-16=22——探测任务会新增，这类值隔几天就漂。
-    # 纪律：跑红先跑流程拿实际值，属业务增长就更新参数值（不是用例失败）；55 回填后可加 (env,expect) 对）
-    @pytest.mark.parametrize("expect_total", ["22"])
-    def test_probe_total_data_driven(self, expect_total):
-        """换 --var 就是一条新用例 —— 和你接口框架 YAML 数据驱动同一思路。
+    @allure.title("探测任务总数：UI 卡片 == 接口基线（跨层一致性）")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_probe_total_matches_api(self):
+        """2026-09-16 优化：不再钉死魔数（两天漂两次 21→22），改为与接口基线交叉验证。
 
-        注意：总数是会变的业务数据（新增探测任务就会变），
-        当回归跑红先核对环境真实值，再判断是 bug 还是期望值过期。
+        口径：卡片值 = /asset/probe/list 的 total + /asset/web-map/list 的 total
+        （实测 14+8=22，页面把探测与网站测绘两类任务合计展示）。
+        好处：数据怎么涨都不误报；不一致本身就是信号（统计口径变了 / 前后端不同步）。
         """
-        result = run_flow("asset_discover", vars={"EXPECT_TOTAL": expect_total})
-        check = result.task("期望「探测任务总数」")
-        assert not check["failed"], (
-            f"总数不等于 {expect_total}（看输出里的实际值；环境数据变了就改参数）"
+        import json as _json
+        import re as _re
+
+        from ui.py.api_baseline import asset_discover_task_total
+
+        result = run_flow("asset_discover")
+        cards = result.task("统计卡片")["results"]["cards_text"]
+        cards = _json.loads(cards) if isinstance(cards, str) else cards
+        m = _re.search(r"(\d+)", cards.get("探测任务总数", ""))
+        assert m, f"卡片读不到数字：{cards.get('探测任务总数')!r}"
+        ui_total = int(m.group(1))
+
+        api_total = asset_discover_task_total()
+        assert ui_total == api_total, (
+            f"UI 卡片({ui_total}) 与接口基线({api_total}) 不一致："
+            "要么页面统计口径变了，要么前后端数据不同步（都是值得查的信号）"
         )
 
 
