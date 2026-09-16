@@ -43,6 +43,8 @@ hsc_auto/
 
 改 UI 用例行为动第一个；换 AI 模型动第二个（改完跑 `cd ui/midscene && npm run check:model` 验证）。
 
+> **按业务模块查用例？看 [`MODULES.md`](MODULES.md)** —— 8 个模块 × 接口/UI/手工三堆的总索引（含覆盖度与缺口）。
+
 ## 二、接口自动化
 
 ### 环境准备
