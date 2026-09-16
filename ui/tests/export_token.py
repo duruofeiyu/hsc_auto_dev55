@@ -60,11 +60,12 @@ def main():
     #   无 role -> state_{ENV}.json / auth_headers_{ENV}.json（默认业务 token）
     #   有 role -> state_{ENV}_{role}.json / auth_headers_{ENV}_{role}.json
     STATE_FILE = os.path.join(UI_DIR, ".auth", f"state_{ENV}_{role}.json" if role else f"state_{ENV}.json")
-    TOKEN_FILE = os.path.join(PROJECT_ROOT, f"token_{ENV}.txt")
+    TOKEN_FILE = os.path.join(PROJECT_ROOT, ".secrets", f"token_{ENV}.txt")
     AUTH_HEADERS_FILE = os.path.join(
-        PROJECT_ROOT,
+        PROJECT_ROOT, ".secrets",
         f"auth_headers_{ENV}_{role}.json" if role else f"auth_headers_{ENV}.json",
     )
+    os.makedirs(os.path.dirname(AUTH_HEADERS_FILE), exist_ok=True)
 
     # state 不存在则自动登录生成（按 role 选用对应账号，避免手动先跑登录冒烟）
     if not os.path.exists(STATE_FILE):

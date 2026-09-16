@@ -134,6 +134,10 @@ UI_ROLE_PASSWORDS = {
 
 # 每个角色独立登录态（storage_state 会话复用），避免每条用例重复过验证码
 # 带 ENV 后缀隔离 55/123 两环境登录态
+# 运行时凭证统一目录（token_*.txt / auth_headers_*.json 收进这里，不再散落根目录）
+SECRETS_DIR = os.path.join(os.path.dirname(__file__), ".secrets")
+os.makedirs(SECRETS_DIR, exist_ok=True)
+
 UI_ROLE_STATE_FILES = {
     role: os.path.join(os.path.dirname(__file__), "ui", "tests", ".auth", f"state_{ENV}_{role}.json")
     for role in UI_ROLE_USERS
@@ -158,10 +162,10 @@ def load_token():
 
     # 回退到本地 token_{ENV}.txt（本地开发，按环境隔离）
     # 兼容旧 token.txt（仅当新文件不存在时）
-    base_dir = os.path.dirname(__file__)
+    base_dir = SECRETS_DIR
     token_file = os.path.join(base_dir, f"token_{ENV}.txt")
-    legacy_file = os.path.join(base_dir, "token.txt")
-    for candidate in (token_file, legacy_file):
+    legacy_file = os.path.join(os.path.dirname(__file__), "token.txt")
+    for candidate in (token_file, legacy_file, os.path.join(os.path.dirname(__file__), f"token_{ENV}.txt")):
         if os.path.exists(candidate):
             with open(candidate, "r") as f:
                 token = f.read().strip()
@@ -205,7 +209,7 @@ def get_headers(role: str = None):
     if role:
         # 角色 token 必须显式导出，缺失时直接报错，避免静默回退到默认
         # (chenyh) token 导致「无权限 403」却查不出原因（权限 bug 假绿）。
-        role_file = os.path.join(base_dir, f"auth_headers_{ENV}_{role}.json")
+        role_file = os.path.join(SECRETS_DIR, f"auth_headers_{ENV}_{role}.json")
         if not os.path.exists(role_file):
             raise RuntimeError(
                 f"角色 '{role}' 的 token 文件不存在：{role_file}\n"
@@ -216,6 +220,7 @@ def get_headers(role: str = None):
         candidates = [role_file]
     else:
         candidates = [
+            os.path.join(SECRETS_DIR, f"auth_headers_{ENV}.json"),
             os.path.join(base_dir, f"auth_headers_{ENV}.json"),
             os.path.join(base_dir, "auth_headers.json"),
         ]
